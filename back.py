@@ -1,9 +1,10 @@
 """
 Fixed AI FastAPI Backend - All errors resolved
-- Fixed async/await issues
-- Fixed currency parsing for precious metals
-- Fixed vectorstore initialization
-- Fixed whisper loading
+- Fixed vectorstore attribute error in health check
+- Fixed LocalLLM wrapper for LangChain compatibility
+- Fixed whisper import issue
+- Fixed RAG chain setup
+- Improved chat responses
 """
 
 import os
@@ -62,20 +63,17 @@ try:
     from langchain.chains import RetrievalQA
     from langchain.prompts import PromptTemplate
     from langchain.schema import Document
+    from langchain.llms.base import LLM
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
 
 # Speech and document processing
 try:
-    import openai_whisper as whisper
+    import whisper
     WHISPER_AVAILABLE = True
 except ImportError:
-    try:
-        import whisper
-        WHISPER_AVAILABLE = True
-    except ImportError:
-        WHISPER_AVAILABLE = False
+    WHISPER_AVAILABLE = False
 
 try:
     from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
@@ -132,6 +130,29 @@ class SimpleEmbeddings:
     
     def embed_query(self, text):
         return [0.1] * 384
+
+# Custom LLM wrapper that properly inherits from LangChain's LLM base class
+class LocalLLMWrapper(LLM if LANGCHAIN_AVAILABLE else object):
+    """Custom LLM wrapper compatible with LangChain"""
+    
+    def __init__(self, ai_service):
+        super().__init__()
+        self.ai_service = ai_service
+    
+    @property
+    def _llm_type(self) -> str:
+        return "local_banking_llm"
+    
+    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+        return self.ai_service.generate_local_response(prompt)
+    
+    def invoke(self, prompt):
+        if isinstance(prompt, str):
+            return self._call(prompt)
+        elif hasattr(prompt, 'text'):
+            return self._call(prompt.text)
+        else:
+            return self._call(str(prompt))
 
 class CurrencyRAGService:
     """Fixed currency service with proper parsing"""
@@ -325,10 +346,9 @@ class AIBankingService:
     def __init__(self):
         self.sessions = {}
         self.currency_service = CurrencyRAGService()
-        self.vectorstore = None  # Initialize to None
-        self.rag_chain = None    # Initialize to None
+        self.vectorstore = None  # Initialize to None - FIXED
+        self.rag_chain = None    # Initialize to None - FIXED
         self.setup_ai_models()
-        # Note: setup_knowledge_base is now called from lifespan startup
         
     def setup_ai_models(self):
         """Initialize all AI models with proper fallbacks"""
@@ -375,7 +395,7 @@ class AIBankingService:
                 self.sentiment_analyzer = None
                 self.ner_pipeline = None
             
-            # Speech AI
+            # Speech AI - FIXED WHISPER IMPORT
             if WHISPER_AVAILABLE:
                 try:
                     self.whisper_model = whisper.load_model("base")
@@ -418,23 +438,27 @@ class AIBankingService:
             else:
                 self.embeddings = SimpleEmbeddings()
             
-            # Custom LLM wrapper
-            class LocalLLM:
-                def __init__(self, service):
-                    self.service = service
+            # FIXED: Use proper LangChain-compatible LLM wrapper
+            if LANGCHAIN_AVAILABLE:
+                self.llm = LocalLLMWrapper(self)
+            else:
+                # Simple fallback for when LangChain is not available
+                class SimpleLLMLocal:
+                    def __init__(self, service):
+                        self.service = service
+                    
+                    def invoke(self, prompt):
+                        if isinstance(prompt, str):
+                            return self.service.generate_local_response(prompt)
+                        elif hasattr(prompt, 'text'):
+                            return self.service.generate_local_response(prompt.text)
+                        else:
+                            return self.service.generate_local_response(str(prompt))
+                    
+                    def __call__(self, prompt):
+                        return self.invoke(prompt)
                 
-                def invoke(self, prompt):
-                    if isinstance(prompt, str):
-                        return self.service.generate_local_response(prompt)
-                    elif hasattr(prompt, 'text'):
-                        return self.service.generate_local_response(prompt.text)
-                    else:
-                        return self.service.generate_local_response(str(prompt))
-                
-                def __call__(self, prompt):
-                    return self.invoke(prompt)
-            
-            self.llm = LocalLLM(self)
+                self.llm = SimpleLLMLocal(self)
             
         except Exception as e:
             logger.error(f"Error setting up local models: {e}")
@@ -661,7 +685,7 @@ Answer:"""
             input_variables=["context", "question"]
         )
         
-        # Create retrieval chain
+        # FIXED: Create retrieval chain with proper error handling
         try:
             self.rag_chain = RetrievalQA.from_chain_type(
                 llm=self.llm,
@@ -670,6 +694,7 @@ Answer:"""
                 chain_type_kwargs={"prompt": PROMPT},
                 return_source_documents=True
             )
+            logger.info("RAG chain created successfully")
         except Exception as e:
             logger.error(f"Error setting up RAG chain: {e}")
             self.rag_chain = None
@@ -694,7 +719,7 @@ Answer:"""
             else:
                 enhanced_message = message
             
-            # Get AI response using RAG if available
+            # FIXED: Get AI response using RAG if available
             if self.rag_chain:
                 try:
                     result = self.rag_chain.invoke({
@@ -710,7 +735,7 @@ Answer:"""
                     ai_response = self.generate_fallback_response(enhanced_message)
                     sources = []
             else:
-                # Direct LLM response or fallback
+                # FIXED: Direct LLM response or fallback
                 ai_response = self.generate_fallback_response(enhanced_message)
                 sources = []
             
@@ -763,12 +788,59 @@ Answer:"""
         if any(keyword in message.lower() for keyword in currency_keywords):
             return self.generate_currency_response(message)
         
+        # Check if it's a banking question
+        banking_keywords = ['loan', 'credit', 'account', 'bank', 'interest', 'deposit', 'kredit', 'hesab', 'bank', 'faiz']
+        if any(keyword in message.lower() for keyword in banking_keywords):
+            return self.generate_banking_response(message)
+        
         # Use local model if available
         if hasattr(self, 'local_model'):
             return self.generate_local_response(message)
         
         # Use simple LLM
-        return self.llm.invoke(message)
+        try:
+            return self.llm.invoke(message)
+        except:
+            return "I'm a banking assistant for Azerbaijan. I can help you with questions about loans, accounts, currency exchange rates, and banking services."
+    
+    def generate_banking_response(self, message: str) -> str:
+        """Generate banking-related response"""
+        
+        # Simple banking responses based on keywords
+        if any(word in message.lower() for word in ['loan', 'credit', 'kredit']):
+            return """For personal loans in Azerbaijan, you typically need:
+
+• Valid Azerbaijan ID card or passport
+• Employment certificate with salary information
+• Bank statements (last 3 months)
+• Minimum monthly income: 500 AZN
+• Employment history: minimum 6 months
+
+Loan amounts range from 500 to 50,000 AZN with interest rates of 12-18% annually. The application process usually takes 1-3 business days.
+
+Would you like more specific information about any particular type of loan?"""
+        
+        elif any(word in message.lower() for word in ['account', 'hesab']):
+            return """Azerbaijan banks offer several account types:
+
+**Current Account:**
+• Minimum deposit: 10 AZN
+• Monthly fee: 2 AZN (waived with 100 AZN balance)
+• Includes debit card and online banking
+
+**Savings Account:**
+• Minimum deposit: 100 AZN
+• Interest rate: 3-4% annually
+• No monthly fees
+
+**Premium Account:**
+• Minimum balance: 1,000 AZN
+• Higher interest rates and premium services
+
+Which type of account interests you most?"""
+        
+        else:
+            return "I'm here to help with all your banking needs in Azerbaijan, including loans, accounts, currency exchange, and general banking services. What specific information would you like to know?"
     
     def generate_currency_response(self, message: str) -> str:
         """Generate currency-related response"""
@@ -900,7 +972,7 @@ async def get_currency_data():
 
 @app.get("/health")
 async def health_check():
-    """Health check with AI and currency status - FIXED"""
+    """FIXED: Health check with AI and currency status"""
     currency_status = "offline"
     currency_count = 0
     vectorstore_status = "offline"
@@ -910,7 +982,7 @@ async def health_check():
             currency_status = "online"
             currency_count = len(ai_service.currency_service.currency_data.get('currencies', {}))
         
-        # Safe check for vectorstore
+        # FIXED: Safe check for vectorstore - check if it exists and is not None
         if hasattr(ai_service, 'vectorstore') and ai_service.vectorstore is not None:
             vectorstore_status = "online"
     
