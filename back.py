@@ -1,6 +1,5 @@
 """
 Real AI FastAPI Backend for Banking Assistant
-Uses actual LLMs, RAG, and AI technologies
 Fixed imports for latest LangChain version
 """
 
@@ -19,33 +18,47 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 
-# Updated LangChain imports for latest version
+# FIXED: Updated LangChain imports for latest version
 try:
     from langchain_openai import ChatOpenAI, OpenAIEmbeddings
     from langchain_community.llms import HuggingFacePipeline
-    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_community.embeddings import HuggingFaceEmbeddings
     from langchain_community.vectorstores import Chroma
     from langchain_community.document_loaders import TextLoader
+    print("✅ Using updated LangChain imports")
 except ImportError:
+    print("⚠️ Installing missing LangChain packages...")
+    print("Run: pip install langchain-openai langchain-community")
     # Fallback for older versions
-    from langchain.llms import OpenAI
-    from langchain.chat_models import ChatOpenAI
-    from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-    from langchain.vectorstores import Chroma
-    from langchain.document_loaders import TextLoader
+    try:
+        from langchain.llms import OpenAI
+        from langchain.chat_models import ChatOpenAI
+        from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
+        from langchain.vectorstores import Chroma
+        from langchain.document_loaders import TextLoader
+        print("⚠️ Using deprecated LangChain imports - please update")
+    except ImportError:
+        print("❌ LangChain not properly installed")
+        raise
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA, ConversationalRetrievalChain
+from langchain.chains import RetrievalQA
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 
 # Speech and document processing
 try:
-    import whisper
+    import openai_whisper as whisper  # FIXED: Use openai-whisper package
+    print("✅ Whisper loaded successfully")
 except ImportError:
-    whisper = None
-    print("Whisper not available - speech features will be disabled")
+    try:
+        import whisper  # Fallback to original whisper
+        print("✅ Whisper loaded (fallback)")
+    except ImportError:
+        whisper = None
+        print("⚠️ Whisper not available - speech features will be disabled")
+        print("Install with: pip install openai-whisper")
 
 import speech_recognition as sr
 from gtts import gTTS
@@ -98,219 +111,288 @@ class AIBankingService:
         logger.info("Initializing AI models...")
         
         try:
-            # Primary LLM setup
-            if os.getenv("OPENAI_API_KEY"):
+            # Check for OpenAI API key
+            openai_key = os.getenv("OPENAI_API_KEY")
+            if openai_key and openai_key != "your_openai_key_here" and len(openai_key) > 20:
+                # Valid OpenAI key - use GPT-4
                 self.llm = ChatOpenAI(
                     model="gpt-4",
                     temperature=0.3,
                     max_tokens=500
                 )
                 self.embeddings = OpenAIEmbeddings()
-                logger.info("Using OpenAI GPT-4")
+                logger.info("✅ Using OpenAI GPT-4")
             else:
-                # Local models fallback
+                # No valid key - use local models
+                logger.info("⚠️ No valid OpenAI key found, using local models")
                 self.setup_local_models()
-                logger.info("Using local HuggingFace models")
             
             # Specialized AI models
-            self.sentiment_analyzer = pipeline(
-                "sentiment-analysis",
-                model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-            )
+            try:
+                self.sentiment_analyzer = pipeline(
+                    "sentiment-analysis",
+                    model="cardiffnlp/twitter-roberta-base-sentiment-latest"
+                )
+                logger.info("✅ Sentiment analyzer loaded")
+            except Exception as e:
+                logger.warning(f"Could not load sentiment analyzer: {e}")
+                self.sentiment_analyzer = None
             
-            self.ner_pipeline = pipeline(
-                "ner",
-                model="dbmdz/bert-large-cased-finetuned-conll03-english",
-                aggregation_strategy="simple"
-            )
+            try:
+                self.ner_pipeline = pipeline(
+                    "ner",
+                    model="dbmdz/bert-large-cased-finetuned-conll03-english",
+                    aggregation_strategy="simple"
+                )
+                logger.info("✅ NER pipeline loaded")
+            except Exception as e:
+                logger.warning(f"Could not load NER pipeline: {e}")
+                self.ner_pipeline = None
             
             # Speech AI
             if whisper:
                 try:
                     self.whisper_model = whisper.load_model("base")
-                    logger.info("Whisper speech recognition loaded")
+                    logger.info("✅ Whisper speech recognition loaded")
                 except Exception as e:
                     logger.warning(f"Could not load Whisper model: {e}")
                     self.whisper_model = None
             else:
                 self.whisper_model = None
-                logger.warning("Whisper not available - speech features disabled")
+                logger.warning("⚠️ Whisper not available - speech features disabled")
             
-            logger.info("All AI models initialized successfully")
+            logger.info("✅ AI models initialization complete")
             
         except Exception as e:
-            logger.error(f"Error initializing AI models: {e}")
+            logger.error(f"❌ Error initializing AI models: {e}")
             raise
     
     def setup_local_models(self):
         """Setup local HuggingFace models"""
-        model_name = "microsoft/DialoGPT-medium"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+        try:
+            model_name = "microsoft/DialoGPT-medium"
+            logger.info(f"Loading local model: {model_name}")
             
-        self.local_model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        
-        # Custom LLM wrapper
-        class LocalLLM:
-            def __init__(self, service):
-                self.service = service
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+                
+            self.local_model = AutoModelForCausalLM.from_pretrained(model_name)
+            self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
             
-            def invoke(self, prompt):
-                if isinstance(prompt, str):
-                    return self.service.generate_local_response(prompt)
-                elif hasattr(prompt, 'text'):
-                    return self.service.generate_local_response(prompt.text)
-                else:
-                    return self.service.generate_local_response(str(prompt))
+            # Custom LLM wrapper
+            class LocalLLM:
+                def __init__(self, service):
+                    self.service = service
+                
+                def invoke(self, input_data):
+                    if isinstance(input_data, str):
+                        return self.service.generate_local_response(input_data)
+                    elif hasattr(input_data, 'text'):
+                        return self.service.generate_local_response(input_data.text)
+                    elif isinstance(input_data, dict) and 'input' in input_data:
+                        return self.service.generate_local_response(input_data['input'])
+                    else:
+                        return self.service.generate_local_response(str(input_data))
+                
+                def __call__(self, prompt):
+                    return self.invoke(prompt)
             
-            def __call__(self, prompt):
-                return self.invoke(prompt)
-        
-        self.llm = LocalLLM(self)
+            self.llm = LocalLLM(self)
+            logger.info("✅ Local models loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Error setting up local models: {e}")
+            raise
     
     def generate_local_response(self, prompt: str) -> str:
         """Generate response using local model"""
         try:
-            banking_prompt = f"""You are a professional banking assistant for Azerbaijan. 
+            banking_prompt = f"""You are a professional banking assistant for Azerbaijan banks. 
             
-            Customer: {prompt}
-            
-            Assistant: """
+Customer question: {prompt}
+
+Provide helpful, professional banking information. Focus on:
+- Banking products and services in Azerbaijan
+- Account requirements and procedures
+- Loan and credit information
+- Customer service excellence
+
+Banking Assistant: """
             
             inputs = self.tokenizer.encode(banking_prompt, return_tensors='pt', max_length=512, truncation=True)
             
             with torch.no_grad():
                 outputs = self.local_model.generate(
                     inputs,
-                    max_length=inputs.shape[1] + 100,
+                    max_length=inputs.shape[1] + 150,
                     temperature=0.7,
                     do_sample=True,
                     pad_token_id=self.tokenizer.eos_token_id,
-                    no_repeat_ngram_size=2
+                    no_repeat_ngram_size=2,
+                    top_p=0.9
                 )
             
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             # Extract only the new part
             response = response[len(banking_prompt):].strip()
             
-            return response if response else "I'm here to help with your banking needs."
+            if not response or len(response) < 10:
+                response = "I'm here to help you with your banking needs. What specific information would you like to know about our services?"
+            
+            return response
             
         except Exception as e:
-            logger.error(f"Local model error: {e}")
-            return "I apologize for the technical difficulty. How can I assist you with banking today?"
+            logger.error(f"❌ Local model error: {e}")
+            return "I apologize for the technical difficulty. How can I assist you with banking services today?"
     
     def setup_knowledge_base(self):
         """Create vector database with banking knowledge"""
         logger.info("Setting up AI knowledge base...")
         
-        # Create comprehensive banking documents
-        banking_docs = self.create_banking_knowledge()
-        
-        # Process documents for RAG
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
-        
-        docs = text_splitter.split_documents(banking_docs)
-        
-        # Create vector store
         try:
-            self.vectorstore = Chroma.from_documents(
-                documents=docs,
-                embedding=self.embeddings,
-                persist_directory="./vectordb"
+            # Create comprehensive banking documents
+            banking_docs = self.create_banking_knowledge()
+            
+            # Process documents for RAG
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200
             )
+            
+            docs = text_splitter.split_documents(banking_docs)
+            
+            # Create vector store with error handling
+            try:
+                self.vectorstore = Chroma.from_documents(
+                    documents=docs,
+                    embedding=self.embeddings,
+                    persist_directory="./vectordb"
+                )
+                logger.info("✅ Vector database created successfully")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not create vector store: {e}")
+                logger.info("Continuing without vector database - using direct AI responses")
+                self.vectorstore = None
+            
+            # Setup RAG chain
+            self.setup_rag_chain()
+            
+            logger.info(f"✅ Knowledge base setup complete with {len(docs)} chunks")
+            
         except Exception as e:
-            logger.error(f"Error creating vector store: {e}")
-            # Create a simple fallback
+            logger.error(f"❌ Knowledge base setup error: {e}")
             self.vectorstore = None
-        
-        # Setup RAG chain
-        self.setup_rag_chain()
-        
-        logger.info(f"Knowledge base created with {len(docs)} AI-processed chunks")
     
     def create_banking_knowledge(self) -> List[Document]:
         """Create comprehensive banking knowledge documents"""
         
         knowledge_base = [
             {
-                "title": "Azerbaijan Banking Loan Services",
+                "title": "Azerbaijan Banking Loan Services - Complete Guide",
                 "content": """
                 COMPREHENSIVE LOAN INFORMATION FOR AZERBAIJAN BANKS
 
-                Personal Loan Eligibility:
-                - Minimum age: 18 years (must have legal capacity)
-                - Maximum age: 65 years at loan maturity
-                - Azerbaijani citizenship or permanent residence permit
-                - Minimum monthly income: 500 AZN (net salary)
-                - Employment history: Minimum 6 months at current workplace
+                Personal Loan Requirements:
+                - Age: 18-65 years (Azerbaijani citizens or residents)
+                - Minimum monthly income: 500 AZN net salary
+                - Employment: Minimum 6 months at current job
                 - Credit history: No defaults in past 12 months
-                - Debt-to-income ratio: Maximum 50% of monthly income
+                - Documents: ID card, salary certificate, bank statements (3 months)
 
-                Required Documentation:
-                - Valid Azerbaijan ID card (Şəxsiyyət vəsiqəsi) or passport
-                - Employment certificate with salary information
-                - Bank account statements (last 3 months)
-                - Copy of employment contract
-                - Certificate of residence registration
-                - For married applicants: Spouse consent letter
+                Loan Types and Interest Rates (2024):
+                1. Personal Loans: 12-18% annually, 500-50,000 AZN, 6-60 months
+                2. Auto Loans: 10-15% annually, up to 80% vehicle value, 12-84 months
+                3. Mortgage Loans: 8-12% annually, up to 70% property value, 5-25 years
 
-                Loan Types and Terms:
-                1. Consumer Loans:
-                   - Amount: 500 - 50,000 AZN
-                   - Term: 6 - 60 months
-                   - Interest rate: 12-18% annually
-                   - No collateral required up to 10,000 AZN
-
-                2. Auto Loans:
-                   - Amount: Up to 80% of vehicle value
-                   - Term: 12 - 84 months
-                   - Interest rate: 10-15% annually
-                   - Vehicle serves as collateral
-
-                3. Mortgage Loans:
-                   - Amount: Up to 70% of property value
-                   - Term: 5 - 25 years
-                   - Interest rate: 8-12% annually
-                   - Property serves as collateral
+                Processing Time: 1-3 business days for pre-approval
+                Collateral: Required for amounts over 10,000 AZN
+                Early Repayment: Allowed with no penalties after 6 months
                 """
             },
             {
-                "title": "Azerbaijan Bank Account Services",
+                "title": "Azerbaijan Bank Account Services - All Types",
                 "content": """
-                COMPLETE BANKING ACCOUNT SERVICES
+                COMPLETE BANKING ACCOUNT SERVICES FOR AZERBAIJAN
 
                 Current Account (Cari Hesab):
-                - Minimum opening deposit: 10 AZN
-                - Monthly maintenance fee: 2 AZN (waived with minimum balance of 100 AZN)
-                - Debit card included (Visa or Mastercard)
-                - Unlimited domestic transactions
-                - Online banking and mobile app access
-                - SMS banking alerts
-                - ATM network access (500+ locations in Azerbaijan)
+                - Opening deposit: 10 AZN minimum
+                - Monthly fee: 2 AZN (waived with 100 AZN balance)
+                - Features: Unlimited transactions, debit card, online banking
+                - ATM withdrawals: Free at our ATMs, 1 AZN at other banks
 
                 Savings Account (Əmanət Hesabı):
-                - Minimum opening deposit: 100 AZN
-                - Interest rate: 3-4% annually (depending on balance)
-                - No monthly maintenance fees
-                - Quarterly interest payments
-                - Limited withdrawals: 5 per month (additional fees apply)
-                - Automatic renewal options
-                - Term deposits available: 3, 6, 12, 24 months
+                - Opening deposit: 100 AZN minimum
+                - Interest rate: 3-4% annually (paid quarterly)
+                - No monthly fees, limited to 5 withdrawals per month
+                - Term deposits: 3, 6, 12, 24 months with higher rates
 
-                Premium Banking Account:
-                - Minimum balance requirement: 1,000 AZN
-                - Enhanced interest rates: Up to 5% annually
-                - No transaction fees
-                - Priority customer service line
-                - Free international transfers (up to 5 per month)
-                - Travel insurance coverage
-                - Airport VIP lounge access
-                - Personal banking manager assigned
+                Premium Account:
+                - Minimum balance: 1,000 AZN
+                - Benefits: 5% interest, no fees, priority service, travel insurance
+                - International: Free SWIFT transfers (5 per month)
+                - VIP services: Airport lounge access, personal banker
+                """
+            },
+            {
+                "title": "Currency Exchange and International Banking",
+                "content": """
+                CURRENCY EXCHANGE AND INTERNATIONAL SERVICES
+
+                Current Exchange Rates (Updated Daily):
+                - USD/AZN: 1.70 (buy: 1.69, sell: 1.71)
+                - EUR/AZN: 1.85 (buy: 1.84, sell: 1.86)
+                - GBP/AZN: 2.15 (buy: 2.14, sell: 2.16)
+                - RUB/AZN: 0.018, TRY/AZN: 0.062
+
+                Foreign Currency Accounts:
+                - Currencies: USD, EUR, GBP available
+                - Minimum balance: $100 or equivalent
+                - Interest rates: USD 1%, EUR 0.5%, GBP 1.5%
+
+                International Transfers:
+                - SWIFT network available to 200+ countries
+                - Fees: 10 AZN (regional), 25 AZN (worldwide)
+                - Processing: Same day for USD/EUR, 1-3 days others
+                - Limits: $10,000 daily, $50,000 monthly
+
+                Travel Services:
+                - Currency exchange at all branches
+                - Travel cards in USD/EUR
+                - Emergency card replacement worldwide
+                """
+            },
+            {
+                "title": "Digital Banking and Mobile Services",
+                "content": """
+                DIGITAL BANKING PLATFORM - AZERBAIJAN
+
+                Mobile Banking App Features:
+                - Account management: Balances, statements, history
+                - Transfers: Between accounts, to other banks, international
+                - Payments: Utilities, mobile, internet, taxes, fines
+                - Cards: Block/unblock, set limits, request new cards
+                - Loans: Application, tracking, repayment scheduling
+
+                Security Features:
+                - Biometric login: Fingerprint, Face ID, voice recognition
+                - Two-factor authentication with SMS/email
+                - Real-time fraud monitoring and alerts
+                - Session timeout and device registration
+                - End-to-end encryption for all transactions
+
+                Online Banking Portal:
+                - Advanced reporting and analytics
+                - Bulk payment processing for businesses
+                - Investment account access and trading
+                - Document vault for statements and certificates
+                - 24/7 customer support chat and video calls
+
+                API Services for Business:
+                - Payment gateway integration
+                - Account information APIs
+                - Automated reconciliation
+                - Real-time balance and transaction APIs
                 """
             }
         ]
@@ -322,7 +404,8 @@ class AIBankingService:
                 metadata={
                     "title": item["title"],
                     "type": "banking_knowledge",
-                    "language": "en"
+                    "language": "en",
+                    "created_at": datetime.now().isoformat()
                 }
             )
             documents.append(doc)
@@ -333,26 +416,27 @@ class AIBankingService:
         """Setup Retrieval-Augmented Generation chain"""
         
         if not self.vectorstore:
-            logger.warning("No vector store available, using direct LLM")
+            logger.warning("⚠️ No vector store available, using direct LLM responses")
+            self.rag_chain = None
             return
         
         # Banking-specific prompt template
-        banking_template = """You are an expert banking assistant for Azerbaijan banks. Use the provided context to give accurate, helpful answers about banking products and services.
+        banking_template = """You are an expert banking assistant for Azerbaijan banks. Use the provided context to give accurate, helpful answers.
 
-Context from banking knowledge base:
+CONTEXT FROM BANKING KNOWLEDGE BASE:
 {context}
 
-Customer question: {question}
+CUSTOMER QUESTION: {question}
 
-Instructions:
+INSTRUCTIONS:
 - Provide specific, accurate information from the context
-- Include relevant numbers, rates, and requirements
+- Include relevant numbers, rates, and requirements when available
 - Be professional and customer-service oriented
 - If asked in Azerbaijani, respond in Azerbaijani
 - If information is not in context, provide general banking guidance
-- Always prioritize customer satisfaction and compliance
+- Always prioritize customer satisfaction and regulatory compliance
 
-Answer:"""
+RESPONSE:"""
 
         PROMPT = PromptTemplate(
             template=banking_template,
@@ -368,8 +452,9 @@ Answer:"""
                 chain_type_kwargs={"prompt": PROMPT},
                 return_source_documents=True
             )
+            logger.info("✅ RAG chain setup complete")
         except Exception as e:
-            logger.error(f"Error setting up RAG chain: {e}")
+            logger.error(f"❌ Error setting up RAG chain: {e}")
             self.rag_chain = None
     
     async def process_chat(self, message: str, language: str = "en", session_id: str = None) -> Dict[str, Any]:
@@ -380,12 +465,13 @@ Answer:"""
             if session_id and session_id not in self.sessions:
                 self.sessions[session_id] = {
                     "memory": ConversationBufferMemory(return_messages=True),
-                    "created_at": datetime.now()
+                    "created_at": datetime.now(),
+                    "message_count": 0
                 }
             
-            # Language-aware query
+            # Language-aware query processing
             if language == "az":
-                enhanced_message = f"[Azerbaijani language request] {message}"
+                enhanced_message = f"[Please respond in Azerbaijani language] {message}"
             else:
                 enhanced_message = message
             
@@ -400,33 +486,42 @@ Answer:"""
                     if "source_documents" in result:
                         sources = [doc.metadata.get("title", "Banking Knowledge") 
                                   for doc in result["source_documents"]]
+                    model_used = "AI-RAG-GPT4" if os.getenv("OPENAI_API_KEY") else "AI-RAG-Local"
                 except Exception as e:
                     logger.error(f"RAG chain error: {e}")
                     ai_response = self.generate_local_response(enhanced_message)
                     sources = []
+                    model_used = "AI-Local-Fallback"
             else:
                 # Direct LLM response
                 ai_response = self.generate_local_response(enhanced_message)
                 sources = []
+                model_used = "AI-Direct"
             
-            # Analyze sentiment
+            # Analyze sentiment if available
             try:
-                sentiment = self.sentiment_analyzer(message)[0]
+                if self.sentiment_analyzer:
+                    sentiment = self.sentiment_analyzer(message)[0]
+                else:
+                    sentiment = {"label": "NEUTRAL", "score": 0.5}
             except Exception as e:
                 logger.error(f"Sentiment analysis error: {e}")
                 sentiment = {"label": "NEUTRAL", "score": 0.5}
             
-            # Extract entities
+            # Extract entities if available
             try:
-                entities = self.ner_pipeline(message)
+                if self.ner_pipeline:
+                    entities = self.ner_pipeline(message)
+                else:
+                    entities = []
             except Exception as e:
                 logger.error(f"NER error: {e}")
                 entities = []
             
             response_data = {
                 "response": ai_response,
-                "confidence": 0.9,
-                "model_used": "AI-RAG" if os.getenv("OPENAI_API_KEY") else "Local-AI",
+                "confidence": 0.9 if self.rag_chain else 0.7,
+                "model_used": model_used,
                 "sentiment": sentiment,
                 "entities": entities,
                 "sources": sources,
@@ -444,16 +539,18 @@ Answer:"""
                     "assistant": ai_response,
                     "timestamp": datetime.now().isoformat()
                 })
+                self.sessions[session_id]["message_count"] += 1
             
             return response_data
             
         except Exception as e:
-            logger.error(f"Chat processing error: {e}")
+            logger.error(f"❌ Chat processing error: {e}")
             return {
-                "response": "I apologize, but I'm experiencing technical difficulties. Please try again.",
+                "response": "I apologize, but I'm experiencing technical difficulties. Please try again or contact customer support.",
                 "confidence": 0.1,
                 "model_used": "error",
-                "error": str(e)
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
             }
     
     async def transcribe_audio(self, audio_file_path: str) -> Dict[str, Any]:
@@ -461,7 +558,8 @@ Answer:"""
         if not self.whisper_model:
             return {
                 "error": "Speech recognition not available - Whisper model not loaded",
-                "confidence": 0.0
+                "confidence": 0.0,
+                "suggestion": "Install with: pip install openai-whisper"
             }
         
         try:
@@ -471,11 +569,12 @@ Answer:"""
                 "transcript": result["text"],
                 "language": result.get("language", "unknown"),
                 "confidence": 0.9,
-                "model": "whisper"
+                "model": "whisper",
+                "duration": result.get("duration", 0)
             }
             
         except Exception as e:
-            logger.error(f"Speech transcription error: {e}")
+            logger.error(f"❌ Speech transcription error: {e}")
             return {
                 "error": str(e),
                 "confidence": 0.0
@@ -484,29 +583,51 @@ Answer:"""
     async def analyze_document(self, content: str, filename: str) -> Dict[str, Any]:
         """Analyze document using AI"""
         try:
-            # Create analysis prompt
+            # Create comprehensive analysis prompt
             analysis_prompt = f"""
-            Analyze this banking document and provide a professional assessment:
+            As a professional banking document analyst, please analyze this document:
             
-            Document: {filename}
-            Content: {content[:2000]}...
+            DOCUMENT: {filename}
+            CONTENT: {content[:2000]}{'...' if len(content) > 2000 else ''}
             
-            Please analyze and provide:
-            1. Document type identification
-            2. Key information extraction
-            3. Compliance assessment
-            4. Risk factors (if any)
-            5. Recommendations
+            Please provide a detailed analysis covering:
             
-            Analysis:
+            1. DOCUMENT TYPE IDENTIFICATION:
+               - What type of banking document is this?
+               - Is it valid and properly formatted?
+            
+            2. KEY INFORMATION EXTRACTION:
+               - Important financial data (amounts, dates, account numbers)
+               - Personal information (names, addresses, IDs)
+               - Banking details (institutions, transactions, balances)
+            
+            3. COMPLIANCE ASSESSMENT:
+               - Does it meet banking standards?
+               - Any missing required information?
+               - Regulatory compliance status
+            
+            4. RISK ASSESSMENT:
+               - Any suspicious elements?
+               - Data consistency check
+               - Authentication indicators
+            
+            5. RECOMMENDATIONS:
+               - Next steps for processing
+               - Additional verification needed
+               - Customer service actions
+            
+            ANALYSIS:
             """
             
             # Get AI analysis
             analysis = self.generate_local_response(analysis_prompt)
             
-            # Extract entities
+            # Extract entities if available
             try:
-                entities = self.ner_pipeline(content)
+                if self.ner_pipeline:
+                    entities = self.ner_pipeline(content[:1000])  # Limit content for NER
+                else:
+                    entities = []
             except Exception as e:
                 logger.error(f"NER error in document analysis: {e}")
                 entities = []
@@ -517,14 +638,17 @@ Answer:"""
                 "entities": entities,
                 "confidence": 0.85,
                 "processed_at": datetime.now().isoformat(),
-                "filename": filename
+                "filename": filename,
+                "content_length": len(content),
+                "features_extracted": len(entities)
             }
             
         except Exception as e:
-            logger.error(f"Document analysis error: {e}")
+            logger.error(f"❌ Document analysis error: {e}")
             return {
                 "error": str(e),
-                "confidence": 0.0
+                "confidence": 0.0,
+                "processed_at": datetime.now().isoformat()
             }
 
 # Initialize AI service
@@ -534,25 +658,25 @@ ai_service = None
 async def lifespan(app: FastAPI):
     """Manage application lifespan"""
     global ai_service
-    logger.info("Starting AI Banking Assistant API...")
+    logger.info("🚀 Starting AI Banking Assistant API...")
     try:
         ai_service = AIBankingService()
-        logger.info("AI models loaded successfully!")
+        logger.info("✅ AI Banking Assistant ready!")
     except Exception as e:
-        logger.error(f"Failed to initialize AI service: {e}")
-        # Continue without AI service for debugging
+        logger.error(f"❌ Failed to initialize AI service: {e}")
+        logger.info("⚠️ API will continue with limited functionality")
         ai_service = None
     
     yield
     
     # Cleanup on shutdown
-    logger.info("Shutting down AI Banking Assistant API...")
+    logger.info("🛑 Shutting down AI Banking Assistant API...")
 
 # Initialize FastAPI app with lifespan
 app = FastAPI(
     title="AI Banking Assistant API",
-    description="Real AI-powered banking assistant using LLMs, RAG, and advanced AI",
-    version="2.0.0",
+    description="Real AI-powered banking assistant using LLMs, RAG, and advanced AI technologies",
+    version="2.1.0",
     lifespan=lifespan
 )
 
@@ -567,25 +691,34 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    """API root with AI status"""
+    """API root with comprehensive AI status"""
     return {
         "name": "AI Banking Assistant",
-        "version": "2.0.0",
+        "version": "2.1.0",
+        "status": "online",
         "ai_status": "online" if ai_service else "offline",
-        "features": [
-            "Large Language Models (LLMs)",
-            "Retrieval-Augmented Generation (RAG)",
-            "Vector Database Search",
-            "Speech Recognition (Whisper)",
-            "Sentiment Analysis",
-            "Named Entity Recognition",
-            "Document AI Analysis"
-        ],
+        "description": "Advanced AI-powered banking assistant for Azerbaijan",
+        "capabilities": {
+            "conversational_ai": True,
+            "document_analysis": True,
+            "speech_recognition": bool(ai_service and ai_service.whisper_model),
+            "sentiment_analysis": bool(ai_service and ai_service.sentiment_analyzer),
+            "entity_extraction": bool(ai_service and ai_service.ner_pipeline),
+            "vector_search": bool(ai_service and ai_service.vectorstore),
+            "multilingual": True
+        },
+        "supported_languages": ["en", "az"],
         "endpoints": {
             "/chat": "Chat with AI assistant",
             "/speech-to-text": "Convert speech to text",
             "/analyze-document": "AI document analysis",
-            "/health": "System health check"
+            "/health": "System health check",
+            "/ai-stats": "AI model statistics"
+        },
+        "models": {
+            "llm": "GPT-4" if os.getenv("OPENAI_API_KEY") else "Local HuggingFace",
+            "embeddings": "OpenAI" if os.getenv("OPENAI_API_KEY") else "SentenceTransformers",
+            "speech": "Whisper" if ai_service and ai_service.whisper_model else "Not available"
         }
     }
 
@@ -593,7 +726,10 @@ async def root():
 async def chat_with_ai(message: ChatMessage):
     """Chat with AI banking assistant"""
     if not ai_service:
-        raise HTTPException(status_code=503, detail="AI service not available")
+        raise HTTPException(
+            status_code=503, 
+            detail="AI service not available. Please check server logs for initialization errors."
+        )
     
     try:
         result = await ai_service.process_chat(
@@ -605,8 +741,8 @@ async def chat_with_ai(message: ChatMessage):
         return ChatResponse(**result)
         
     except Exception as e:
-        logger.error(f"Chat endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Chat endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
 @app.post("/speech-to-text")
 async def speech_to_text(audio_file: UploadFile = File(...)):
@@ -615,6 +751,10 @@ async def speech_to_text(audio_file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail="AI service not available")
     
     try:
+        # Validate file type
+        if not audio_file.content_type.startswith('audio/'):
+            raise HTTPException(status_code=400, detail="File must be audio format")
+        
         # Save uploaded audio temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
             content = await audio_file.read()
@@ -630,8 +770,8 @@ async def speech_to_text(audio_file: UploadFile = File(...)):
         return result
         
     except Exception as e:
-        logger.error(f"Speech-to-text error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Speech-to-text error: {e}")
+        raise HTTPException(status_code=500, detail=f"Speech transcription failed: {str(e)}")
 
 @app.post("/analyze-document", response_model=DocumentAnalysisResponse)
 async def analyze_document(file: UploadFile = File(...)):
@@ -643,10 +783,13 @@ async def analyze_document(file: UploadFile = File(...)):
         # Read file content
         content = await file.read()
         
+        # Handle different file types
         if file.content_type == "text/plain":
             text_content = content.decode("utf-8")
+        elif file.content_type == "application/pdf":
+            text_content = f"PDF document uploaded: {file.filename} ({len(content)} bytes)"
         else:
-            text_content = f"Binary file uploaded: {file.filename}"
+            text_content = f"Document uploaded: {file.filename} (Type: {file.content_type}, Size: {len(content)} bytes)"
         
         # AI analysis
         result = await ai_service.analyze_document(text_content, file.filename)
@@ -663,47 +806,95 @@ async def analyze_document(file: UploadFile = File(...)):
         )
         
     except Exception as e:
-        logger.error(f"Document analysis error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Document analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Document analysis failed: {str(e)}")
 
 @app.get("/health")
 async def health_check():
-    """Health check with AI status"""
-    return {
+    """Comprehensive health check with AI status"""
+    health_data = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "ai_models": {
-            "llm": "online" if ai_service else "offline",
-            "embeddings": "online" if ai_service else "offline",
-            "speech_recognition": "online" if ai_service else "offline",
-            "sentiment_analysis": "online" if ai_service else "offline",
-            "entity_recognition": "online" if ai_service else "offline"
-        },
-        "vector_database": "online" if ai_service and ai_service.vectorstore else "offline",
-        "sessions_active": len(ai_service.sessions) if ai_service else 0
+        "api_version": "2.1.0",
+        "ai_service": "online" if ai_service else "offline"
     }
+    
+    if ai_service:
+        health_data.update({
+            "ai_models": {
+                "llm": "online" if hasattr(ai_service, 'llm') else "offline",
+                "embeddings": "online" if hasattr(ai_service, 'embeddings') else "offline",
+                "speech_recognition": "online" if ai_service.whisper_model else "offline",
+                "sentiment_analysis": "online" if ai_service.sentiment_analyzer else "offline",
+                "entity_recognition": "online" if ai_service.ner_pipeline else "offline"
+            },
+            "vector_database": "online" if ai_service.vectorstore else "offline",
+            "sessions_active": len(ai_service.sessions),
+            "knowledge_base": "loaded" if ai_service.vectorstore else "not_available"
+        })
+    else:
+        health_data["error"] = "AI service failed to initialize"
+    
+    return health_data
 
 @app.get("/ai-stats")
 async def get_ai_stats():
-    """Get AI model statistics"""
+    """Get detailed AI model statistics"""
     if not ai_service:
-        return {"error": "AI service not available"}
+        return {
+            "error": "AI service not available",
+            "suggestion": "Check server logs for initialization errors"
+        }
     
-    return {
-        "model_type": "GPT-4" if os.getenv("OPENAI_API_KEY") else "Local HuggingFace",
-        "vector_database_size": "available" if ai_service.vectorstore else "unavailable",
-        "active_sessions": len(ai_service.sessions),
-        "supported_languages": ["en", "az"],
-        "ai_capabilities": {
+    stats = {
+        "ai_configuration": {
+            "primary_llm": "GPT-4" if os.getenv("OPENAI_API_KEY") else "Local HuggingFace DialoGPT",
+            "embeddings": "OpenAI" if os.getenv("OPENAI_API_KEY") else "SentenceTransformers all-MiniLM-L6-v2",
+            "vector_database": "ChromaDB" if ai_service.vectorstore else "Not available",
+            "speech_model": "Whisper" if ai_service.whisper_model else "Not available"
+        },
+        "session_data": {
+            "active_sessions": len(ai_service.sessions),
+            "total_conversations": sum(s.get("message_count", 0) for s in ai_service.sessions.values()),
+            "oldest_session": min([s["created_at"] for s in ai_service.sessions.values()], default=None)
+        },
+        "capabilities": {
             "conversational_ai": True,
             "document_analysis": True,
-            "speech_recognition": True,
-            "sentiment_analysis": True,
-            "entity_extraction": True,
-            "vector_search": bool(ai_service.vectorstore)
+            "speech_recognition": bool(ai_service.whisper_model),
+            "sentiment_analysis": bool(ai_service.sentiment_analyzer),
+            "entity_extraction": bool(ai_service.ner_pipeline),
+            "vector_search": bool(ai_service.vectorstore),
+            "multilingual_support": True,
+            "rag_enabled": bool(ai_service.rag_chain)
+        },
+        "supported_features": {
+            "languages": ["en", "az"],
+            "document_types": ["text", "pdf", "image"],
+            "audio_formats": ["wav", "mp3", "m4a"],
+            "banking_domains": ["loans", "accounts", "currency", "digital_services"]
         }
     }
+    
+    return stats
+
+# Health check for Docker
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint for Docker health checks"""
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    port = int(os.getenv("API_PORT", 8000))
+    host = os.getenv("API_HOST", "0.0.0.0")
+    
+    logger.info(f"🚀 Starting AI Banking Assistant on {host}:{port}")
+    
+    uvicorn.run(
+        app, 
+        host=host, 
+        port=port, 
+        log_level="info",
+        reload=False  # Disable reload for production
+    )
