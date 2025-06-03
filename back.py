@@ -17,20 +17,23 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 
 # Updated LangChain imports for latest version
 try:
     from langchain_openai import ChatOpenAI, OpenAIEmbeddings
     from langchain_community.llms import HuggingFacePipeline
     from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_community.vectorstores import Chroma
+    from langchain_community.document_loaders import TextLoader
 except ImportError:
     # Fallback for older versions
     from langchain.llms import OpenAI
     from langchain.chat_models import ChatOpenAI
     from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
+    from langchain.vectorstores import Chroma
+    from langchain.document_loaders import TextLoader
 
-from langchain.vectorstores import Chroma
-from langchain.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA, ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
@@ -38,7 +41,12 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 
 # Speech and document processing
-import whisper
+try:
+    import whisper
+except ImportError:
+    whisper = None
+    print("Whisper not available - speech features will be disabled")
+
 import speech_recognition as sr
 from gtts import gTTS
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
@@ -117,7 +125,16 @@ class AIBankingService:
             )
             
             # Speech AI
-            self.whisper_model = whisper.load_model("base")
+            if whisper:
+                try:
+                    self.whisper_model = whisper.load_model("base")
+                    logger.info("Whisper speech recognition loaded")
+                except Exception as e:
+                    logger.warning(f"Could not load Whisper model: {e}")
+                    self.whisper_model = None
+            else:
+                self.whisper_model = None
+                logger.warning("Whisper not available - speech features disabled")
             
             logger.info("All AI models initialized successfully")
             
@@ -441,6 +458,12 @@ Answer:"""
     
     async def transcribe_audio(self, audio_file_path: str) -> Dict[str, Any]:
         """Transcribe audio using Whisper AI"""
+        if not self.whisper_model:
+            return {
+                "error": "Speech recognition not available - Whisper model not loaded",
+                "confidence": 0.0
+            }
+        
         try:
             result = self.whisper_model.transcribe(audio_file_path)
             
@@ -504,11 +527,33 @@ Answer:"""
                 "confidence": 0.0
             }
 
-# Initialize FastAPI app
+# Initialize AI service
+ai_service = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan"""
+    global ai_service
+    logger.info("Starting AI Banking Assistant API...")
+    try:
+        ai_service = AIBankingService()
+        logger.info("AI models loaded successfully!")
+    except Exception as e:
+        logger.error(f"Failed to initialize AI service: {e}")
+        # Continue without AI service for debugging
+        ai_service = None
+    
+    yield
+    
+    # Cleanup on shutdown
+    logger.info("Shutting down AI Banking Assistant API...")
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="AI Banking Assistant API",
     description="Real AI-powered banking assistant using LLMs, RAG, and advanced AI",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -519,22 +564,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize AI service
-ai_service = None
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize AI models on startup"""
-    global ai_service
-    logger.info("Starting AI Banking Assistant API...")
-    try:
-        ai_service = AIBankingService()
-        logger.info("AI models loaded successfully!")
-    except Exception as e:
-        logger.error(f"Failed to initialize AI service: {e}")
-        # Continue without AI service for debugging
-        ai_service = None
 
 @app.get("/")
 async def root():
