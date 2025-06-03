@@ -1,644 +1,574 @@
 """
-Real AI-Powered Banking Assistant Frontend
-FIXED VERSION - No more warnings or errors
+Fixed AI Banking Assistant Frontend - All errors resolved
+- Fixed currency parsing errors
+- Improved error handling
+- Better user experience
+- Robust API communication
 """
 
 import os
-import asyncio
-from typing import Dict, List, Any, Optional
 import streamlit as st
-from datetime import datetime
-import tempfile
-import logging
-import sys
-
-# Set environment variables before importing AI libraries
-os.environ["TOKENIZERS_PARALLELISM"] = "false"  # Prevents tokenizer warnings
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"  # Fixes MPS issues on Mac
-
-# FIXED: Updated LangChain imports (no more deprecation warnings)
-try:
-    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain_community.vectorstores import Chroma
-    from langchain_community.document_loaders import TextLoader
-    print("✅ Using updated LangChain imports")
-except ImportError:
-    print("⚠️ Installing missing packages...")
-    print("Run: pip install langchain-openai langchain-community")
-    # Fallback imports
-    try:
-        from langchain.llms import OpenAI
-        from langchain.chat_models import ChatOpenAI
-        from langchain.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
-        from langchain.vectorstores import Chroma
-        from langchain.document_loaders import TextLoader
-        print("⚠️ Using fallback imports")
-    except ImportError as e:
-        st.error(f"LangChain not properly installed: {e}")
-        st.stop()
-
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA, ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts import PromptTemplate
-from langchain.schema import Document
-
-# Speech processing with error handling
-try:
-    import speech_recognition as sr
-    from gtts import gTTS
-    SPEECH_AVAILABLE = True
-except ImportError:
-    SPEECH_AVAILABLE = False
-    st.warning("Speech features not available. Install: pip install speechrecognition gtts")
-
-# Document processing with AI
-try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
-    import torch
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
-    st.warning("AI models not available. Install: pip install transformers torch")
-
-# Environment
-from dotenv import load_dotenv
-import io
+import requests
 import json
-
-load_dotenv()
-
-# Configure logging to reduce noise
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
+import pandas as pd
+import re
+import time
 
 # Page configuration
 st.set_page_config(
-    page_title="AI Banking Assistant - Azerbaijan",
+    page_title="🏦 AI Banking Assistant - Azerbaijan", 
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-class AIBankingAssistant:
-    """Simplified AI banking assistant with proper error handling"""
+# Constants
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+CBAR_CURRENCY_URL = "https://www.cbar.az/currencies"
+
+class CurrencyService:
+    """Enhanced currency service with proper error handling"""
     
     def __init__(self):
-        self.setup_complete = False
-        self.error_message = None
+        self.currency_cache = {}
+        self.last_update = None
         
+    def parse_nominal_value(self, nominal_str: str) -> float:
+        """Parse nominal values like '1 t.u.' or '100' properly"""
         try:
-            self.setup_models()
-            self.setup_knowledge_base()
-            self.setup_complete = True
-        except Exception as e:
-            self.error_message = str(e)
-            logger.error(f"AI setup failed: {e}")
-        
-    def setup_models(self):
-        """Initialize AI models with proper error handling"""
-        logger.info("Initializing AI models...")
-        
-        # Check for valid OpenAI API key
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if openai_key and openai_key != "your_openai_key_here" and len(openai_key) > 20:
-            try:
-                self.llm = ChatOpenAI(
-                    model="gpt-4",
-                    temperature=0.3,
-                    max_tokens=500
-                )
-                self.embeddings = OpenAIEmbeddings()
-                self.model_type = "OpenAI GPT-4"
-                logger.info("✅ Using OpenAI GPT-4")
-            except Exception as e:
-                logger.warning(f"OpenAI setup failed: {e}")
-                self.setup_local_models()
-        else:
-            logger.info("No valid OpenAI key, using local models")
-            self.setup_local_models()
-        
-        # Setup specialized models with error handling
-        self.setup_specialized_models()
-        
-    def setup_local_models(self):
-        """Setup local HuggingFace models with error handling"""
-        try:
-            if not TRANSFORMERS_AVAILABLE:
-                raise ImportError("Transformers not available")
-                
-            model_name = "microsoft/DialoGPT-medium"
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-                
-            self.local_model = AutoModelForCausalLM.from_pretrained(model_name)
-            self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            self.model_type = "Local HuggingFace"
+            # Handle special case for troy ounce
+            if 't.u.' in str(nominal_str):
+                return 1.0  # 1 troy ounce
             
-            # Create LLM wrapper
-            class LocalLLM:
-                def __init__(self, parent):
-                    self.parent = parent
-                
-                def invoke(self, input_data):
-                    if isinstance(input_data, str):
-                        return self.parent.generate_local_response(input_data)
-                    elif hasattr(input_data, 'text'):
-                        return self.parent.generate_local_response(input_data.text)
-                    elif isinstance(input_data, dict) and 'input' in input_data:
-                        return self.parent.generate_local_response(input_data['input'])
-                    else:
-                        return self.parent.generate_local_response(str(input_data))
-            
-            self.llm = LocalLLM(self)
-            logger.info("✅ Local models loaded")
-            
-        except Exception as e:
-            logger.error(f"Local model setup failed: {e}")
-            # Create a simple fallback
-            self.llm = self.SimpleFallbackLLM()
-            self.embeddings = None
-            self.model_type = "Simple Fallback"
-    
-    def setup_specialized_models(self):
-        """Setup specialized AI models with error handling"""
-        self.sentiment_analyzer = None
-        self.ner_pipeline = None
-        
-        if not TRANSFORMERS_AVAILABLE:
-            return
-            
-        try:
-            self.sentiment_analyzer = pipeline(
-                "sentiment-analysis",
-                model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-            )
-        except Exception as e:
-            logger.warning(f"Sentiment analyzer not available: {e}")
-        
-        try:
-            self.ner_pipeline = pipeline(
-                "ner",
-                model="dbmdz/bert-large-cased-finetuned-conll03-english",
-                aggregation_strategy="simple"
-            )
-        except Exception as e:
-            logger.warning(f"NER pipeline not available: {e}")
-    
-    class SimpleFallbackLLM:
-        """Simple fallback when no AI models are available"""
-        
-        def invoke(self, input_data):
-            if isinstance(input_data, dict) and 'input' in input_data:
-                query = input_data['input']
+            # Extract numeric part
+            numeric_part = re.findall(r'\d+', str(nominal_str))
+            if numeric_part:
+                return float(numeric_part[0])
             else:
-                query = str(input_data)
+                return 1.0  # Default to 1
                 
-            # Simple rule-based responses for banking
-            query_lower = query.lower()
-            
-            if "loan" in query_lower or "credit" in query_lower:
-                return """For personal loans in Azerbaijan, you typically need:
-- Age between 18-65 years
-- Minimum monthly income of 500 AZN
-- Valid ID and employment documents
-- Good credit history
-
-Interest rates range from 12-18% annually for personal loans."""
-            
-            elif "account" in query_lower:
-                return """Azerbaijan banks offer several account types:
-- Current Account: 10 AZN minimum, 2 AZN monthly fee
-- Savings Account: 100 AZN minimum, 3-4% interest
-- Premium Account: 1000 AZN minimum, enhanced benefits
-
-All accounts include online banking and debit cards."""
-            
-            elif "currency" in query_lower or "exchange" in query_lower:
-                return """Current approximate exchange rates:
-- USD/AZN: 1.70
-- EUR/AZN: 1.85
-- GBP/AZN: 2.15
-
-Exchange services available at all branches with competitive rates."""
-            
-            else:
-                return """I'm here to help with your banking needs! I can provide information about:
-- Loan requirements and interest rates
-- Account types and features
-- Currency exchange services
-- Digital banking services
-- Branch locations and hours
-
-What specific banking information would you like to know?"""
-    
-    def generate_local_response(self, prompt: str) -> str:
-        """Generate response using local model"""
-        try:
-            banking_prompt = f"""You are a professional banking assistant for Azerbaijan banks.
-
-Customer question: {prompt}
-
-Provide helpful banking information about:
-- Loan requirements and procedures
-- Account types and features  
-- Currency exchange and rates
-- Digital banking services
-
-Response:"""
-            
-            inputs = self.tokenizer.encode(banking_prompt, return_tensors='pt', max_length=512, truncation=True)
-            
-            with torch.no_grad():
-                outputs = self.local_model.generate(
-                    inputs,
-                    max_length=inputs.shape[1] + 150,
-                    temperature=0.7,
-                    do_sample=True,
-                    pad_token_id=self.tokenizer.eos_token_id,
-                    no_repeat_ngram_size=2,
-                    top_p=0.9
-                )
-            
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            response = response[len(banking_prompt):].strip()
-            
-            if not response or len(response) < 10:
-                return "I'm here to help with your banking needs. What specific information would you like?"
-            
-            return response
-            
         except Exception as e:
-            logger.error(f"Local model error: {e}")
-            return "I apologize for the technical difficulty. How can I assist you with banking services today?"
+            st.warning(f"Could not parse nominal '{nominal_str}': {e}")
+            return 1.0
     
-    def setup_knowledge_base(self):
-        """Create knowledge base with error handling"""
-        self.vectorstore = None
-        self.rag_chain = None
+    def get_currency_url(self, date_str: str = None) -> str:
+        """Get CBAR currency URL for specific date"""
+        if not date_str:
+            date_str = datetime.now().strftime("%d.%m.%Y")
+        return f"{CBAR_CURRENCY_URL}/{date_str}.xml"
+    
+    @st.cache_data(ttl=3600)  # Cache for 1 hour
+    def fetch_currency_data(_self, date_str: str = None) -> Dict[str, Any]:
+        """Fetch currency data from CBAR with improved parsing"""
+        try:
+            url = _self.get_currency_url(date_str)
+            
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            
+            # Parse XML
+            root = ET.fromstring(response.content)
+            
+            currencies = {}
+            metals = {}
+            
+            # Extract currency and metal data
+            for val_type in root.findall('ValType'):
+                type_name = val_type.get('Type')
+                
+                for valute in val_type.findall('Valute'):
+                    code = valute.get('Code')
+                    nominal_str = valute.find('Nominal').text
+                    name = valute.find('Name').text
+                    value = float(valute.find('Value').text)
+                    
+                    # Parse nominal properly
+                    nominal = _self.parse_nominal_value(nominal_str)
+                    
+                    data = {
+                        'code': code,
+                        'name': name,
+                        'nominal': nominal,
+                        'nominal_str': nominal_str,  # Keep original string
+                        'value': value,
+                        'rate_per_unit': value / nominal if nominal > 0 else value
+                    }
+                    
+                    if type_name == 'Xarici valyutalar':
+                        currencies[code] = data
+                    elif type_name == 'Bank metalları':
+                        metals[code] = data
+            
+            return {
+                'currencies': currencies,
+                'metals': metals,
+                'date': root.get('Date'),
+                'last_updated': datetime.now().isoformat(),
+                'status': 'success'
+            }
+            
+        except requests.exceptions.RequestException as e:
+            return {'currencies': {}, 'metals': {}, 'error': f'Network error: {str(e)}', 'status': 'error'}
+        except ET.ParseError as e:
+            return {'currencies': {}, 'metals': {}, 'error': f'XML parsing error: {str(e)}', 'status': 'error'}
+        except Exception as e:
+            return {'currencies': {}, 'metals': {}, 'error': f'Unexpected error: {str(e)}', 'status': 'error'}
+    
+    def format_currency_for_display(self, currency_data: Dict) -> str:
+        """Format currency data for display"""
+        if not currency_data.get('currencies'):
+            return "Currency data unavailable"
         
-        if not self.embeddings:
-            logger.warning("No embeddings available, skipping vector store")
-            return
-            
-        try:
-            # Create banking documents
-            banking_docs = self.create_banking_knowledge()
-            
-            # Split documents
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200
-            )
-            docs = text_splitter.split_documents(banking_docs)
-            
-            # Create vector store
-            self.vectorstore = Chroma.from_documents(
-                documents=docs,
-                embedding=self.embeddings,
-                persist_directory="./data/vectordb"
-            )
-            
-            # Setup RAG chain
-            self.setup_rag_chain()
-            
-            logger.info(f"Knowledge base created with {len(docs)} chunks")
-            
-        except Exception as e:
-            logger.error(f"Vector store setup failed: {e}")
-            self.vectorstore = None
+        formatted_text = f"**Central Bank of Azerbaijan Exchange Rates**\n"
+        formatted_text += f"Date: {currency_data.get('date', 'Unknown')}\n\n"
+        
+        for code, data in currency_data['currencies'].items():
+            formatted_text += f"**{code}** - {data['name']}: {data['value']} AZN\n"
+        
+        return formatted_text
+
+class ChatInterface:
+    """Enhanced chat interface with better error handling"""
     
-    def create_banking_knowledge(self) -> List[Document]:
-        """Create banking knowledge documents"""
-        knowledge = [
-            {
-                "title": "Azerbaijan Loan Requirements",
-                "content": """
-                LOAN REQUIREMENTS FOR AZERBAIJAN BANKS
-
-                Personal Loans:
-                - Age: 18-65 years (Azerbaijani citizens or residents)
-                - Minimum income: 500 AZN monthly (net salary)
-                - Employment: 6+ months at current job
-                - Credit history: No defaults in past 12 months
-                - Documents: ID card, salary certificate, bank statements (3 months)
-
-                Interest Rates (2024):
-                - Personal loans: 12-18% annually
-                - Auto loans: 10-15% annually  
-                - Mortgage loans: 8-12% annually
-
-                Loan Amounts:
-                - Personal: 500 - 50,000 AZN
-                - Auto: Up to 80% of vehicle value
-                - Mortgage: Up to 70% of property value
-
-                Processing Time: 1-3 business days
-                Collateral: Required for amounts over 10,000 AZN
-                """
+    def __init__(self):
+        self.currency_service = CurrencyService()
+        
+        # Initialize session state
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+        if "session_id" not in st.session_state:
+            st.session_state.session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        if "backend_status" not in st.session_state:
+            st.session_state.backend_status = "unknown"
+    
+    def call_api(self, endpoint: str, method: str = "GET", timeout: int = 30, **kwargs) -> Dict:
+        """Make API calls with comprehensive error handling"""
+        try:
+            url = f"{API_BASE_URL}{endpoint}"
+            
+            if method == "GET":
+                response = requests.get(url, timeout=timeout, **kwargs)
+            elif method == "POST":
+                response = requests.post(url, timeout=timeout, **kwargs)
+            else:
+                raise ValueError(f"Unsupported method: {method}")
+            
+            response.raise_for_status()
+            return response.json()
+            
+        except requests.exceptions.ConnectionError:
+            return {
+                "error": "Cannot connect to AI backend", 
+                "details": "Make sure the backend server is running on http://localhost:8000",
+                "type": "connection_error"
+            }
+        except requests.exceptions.Timeout:
+            return {
+                "error": "Request timeout", 
+                "details": "The AI is taking too long to respond. Please try again.",
+                "type": "timeout_error"
+            }
+        except requests.exceptions.HTTPError as e:
+            return {
+                "error": f"HTTP error: {e.response.status_code}", 
+                "details": f"Server returned error: {e.response.reason}",
+                "type": "http_error"
+            }
+        except json.JSONDecodeError:
+            return {
+                "error": "Invalid response format", 
+                "details": "Server returned invalid JSON",
+                "type": "json_error"
+            }
+        except Exception as e:
+            return {
+                "error": f"Unexpected error: {str(e)}", 
+                "details": "An unexpected error occurred",
+                "type": "unknown_error"
+            }
+    
+    def check_backend_status(self) -> Dict:
+        """Check backend status with timeout"""
+        with st.spinner("Checking backend status..."):
+            health = self.call_api("/health", timeout=5)
+            
+            if "error" not in health:
+                st.session_state.backend_status = "online"
+                return health
+            else:
+                st.session_state.backend_status = "offline"
+                return health
+    
+    def send_message(self, message: str, language: str = "en") -> Dict:
+        """Send message to AI with enhanced error handling"""
+        
+        response = self.call_api(
+            "/chat",
+            method="POST",
+            json={
+                "message": message,
+                "language": language,
+                "session_id": st.session_state.session_id
             },
-            {
-                "title": "Azerbaijan Bank Accounts",
-                "content": """
-                ACCOUNT TYPES AND SERVICES
-
-                Current Account:
-                - Minimum balance: 10 AZN
-                - Monthly fee: 2 AZN (waived with 100 AZN balance)
-                - Features: Unlimited transactions, debit card, online banking
-                - ATM access: Free at bank ATMs, 1 AZN fee elsewhere
-
-                Savings Account:
-                - Minimum balance: 100 AZN
-                - Interest rate: 3-4% annually
-                - No monthly fees
-                - Limited withdrawals: 5 per month
-
-                Premium Account:
-                - Minimum balance: 1,000 AZN
-                - Benefits: Higher interest, no fees, priority service
-                - International: Free SWIFT transfers
-                - VIP services: Airport lounge, personal banker
-                """
-            }
-        ]
-        
-        documents = []
-        for item in knowledge:
-            doc = Document(
-                page_content=item["content"],
-                metadata={"title": item["title"], "type": "banking_knowledge"}
-            )
-            documents.append(doc)
-        
-        return documents
-    
-    def setup_rag_chain(self):
-        """Setup RAG chain with error handling"""
-        if not self.vectorstore:
-            return
-            
-        try:
-            banking_template = """You are a banking assistant for Azerbaijan. Use the context to answer questions.
-
-Context: {context}
-Question: {question}
-
-Provide accurate banking information based on the context. Be professional and helpful.
-
-Answer:"""
-
-            PROMPT = PromptTemplate(
-                template=banking_template,
-                input_variables=["context", "question"]
-            )
-            
-            self.rag_chain = RetrievalQA.from_chain_type(
-                llm=self.llm,
-                chain_type="stuff",
-                retriever=self.vectorstore.as_retriever(search_kwargs={"k": 3}),
-                chain_type_kwargs={"prompt": PROMPT},
-                return_source_documents=True
-            )
-            
-        except Exception as e:
-            logger.error(f"RAG chain setup failed: {e}")
-            self.rag_chain = None
-    
-    def process_query(self, query: str, language: str = "en") -> Dict[str, Any]:
-        """Process user query"""
-        try:
-            # Language enhancement
-            if language == "az":
-                enhanced_query = f"[Respond in Azerbaijani] {query}"
-            else:
-                enhanced_query = query
-            
-            # Try RAG first
-            if self.rag_chain:
-                try:
-                    result = self.rag_chain.invoke({"query": enhanced_query})
-                    response = result.get("result", "I'm here to help with banking.")
-                    sources = [doc.metadata.get("title", "Knowledge") 
-                              for doc in result.get("source_documents", [])]
-                    model_used = f"{self.model_type}-RAG"
-                except Exception as e:
-                    logger.error(f"RAG failed: {e}")
-                    response = self.llm.invoke(enhanced_query)
-                    sources = []
-                    model_used = self.model_type
-            else:
-                # Direct LLM
-                response = self.llm.invoke(enhanced_query)
-                sources = []
-                model_used = self.model_type
-            
-            # Analyze sentiment
-            sentiment = {"label": "NEUTRAL", "score": 0.5}
-            if self.sentiment_analyzer:
-                try:
-                    sentiment = self.sentiment_analyzer(query)[0]
-                except:
-                    pass
-            
-            # Extract entities
-            entities = []
-            if self.ner_pipeline:
-                try:
-                    entities = self.ner_pipeline(query)
-                except:
-                    pass
-            
-            return {
-                "response": response,
-                "confidence": 0.9 if self.rag_chain else 0.7,
-                "model": model_used,
-                "sentiment": sentiment,
-                "entities": entities,
-                "sources": sources
-            }
-            
-        except Exception as e:
-            logger.error(f"Query processing error: {e}")
-            return {
-                "response": "I apologize for the technical difficulty. How can I help with your banking needs?",
-                "confidence": 0.1,
-                "model": "error",
-                "error": str(e)
-            }
-
-@st.cache_resource
-def get_ai_assistant():
-    """Initialize AI assistant with caching"""
-    return AIBankingAssistant()
-
-def main():
-    """Main Streamlit application"""
-    
-    # Custom CSS to reduce warnings
-    st.markdown("""
-    <style>
-    .stAlert > div {
-        padding: 0.5rem;
-    }
-    .stSuccess {
-        background-color: #d4edda;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    st.title("🤖 AI Banking Assistant for Azerbaijan")
-    st.markdown("**Advanced AI-powered banking support with LLMs and RAG**")
-    
-    # Initialize AI
-    with st.spinner("🧠 Loading AI models..."):
-        ai_assistant = get_ai_assistant()
-    
-    # Show AI status
-    if ai_assistant.setup_complete:
-        st.success(f"✅ AI Ready - Using {ai_assistant.model_type}")
-    else:
-        st.error(f"❌ AI Setup Failed: {ai_assistant.error_message}")
-        st.info("💡 App will continue with basic functionality")
-    
-    # Sidebar configuration
-    with st.sidebar:
-        st.header("🔧 Settings")
-        
-        language = st.selectbox(
-            "Language / Dil", 
-            ["en", "az"],
-            format_func=lambda x: "English" if x == "en" else "Azərbaycan"
+            timeout=60  # Longer timeout for AI responses
         )
         
-        st.markdown("---")
-        st.subheader("🎯 AI Features")
+        return response
+    
+    def display_currency_sidebar(self):
+        """Display currency information in sidebar with error handling"""
+        with st.sidebar:
+            st.header("💱 Exchange Rates")
+            
+            # Try to get currency data from backend first
+            currency_response = self.call_api("/currency", timeout=10)
+            
+            if "error" not in currency_response and currency_response.get('currencies'):
+                # Use backend data
+                currency_data = currency_response
+                data_source = "Backend API"
+            else:
+                # Fallback to direct CBAR fetch
+                currency_data = self.currency_service.fetch_currency_data()
+                data_source = "Direct CBAR"
+            
+            if currency_data.get('currencies'):
+                st.success(f"✅ Data from: {data_source}")
+                st.caption(f"📅 Date: {currency_data.get('date', 'Unknown')}")
+                
+                # Major currencies
+                major_currencies = ['USD', 'EUR', 'GBP', 'RUB', 'TRY']
+                
+                for code in major_currencies:
+                    if code in currency_data['currencies']:
+                        curr = currency_data['currencies'][code]
+                        col1, col2 = st.columns([1, 2])
+                        with col1:
+                            st.write(f"**{code}**")
+                        with col2:
+                            st.write(f"{curr['value']} AZN")
+                
+                # Show more currencies in expander
+                with st.expander("📊 All Currencies"):
+                    try:
+                        df_currencies = pd.DataFrame([
+                            {
+                                'Currency': f"{data['code']} - {data['name']}",
+                                'Rate (AZN)': data['value'],
+                                'Per Unit': data.get('rate_per_unit', data['value'])
+                            }
+                            for data in currency_data['currencies'].values()
+                        ])
+                        st.dataframe(df_currencies, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error displaying currency table: {e}")
+                
+                # Bank metals
+                if currency_data.get('metals'):
+                    with st.expander("🥇 Precious Metals"):
+                        for code, data in currency_data['metals'].items():
+                            st.write(f"**{data['name']}**: {data['value']} AZN per {data.get('nominal_str', '1 unit')}")
+                            
+            else:
+                st.error("❌ Currency data unavailable")
+                if currency_data.get('error'):
+                    st.caption(f"Error: {currency_data['error']}")
+                    
+                # Show retry button
+                if st.button("🔄 Retry Currency Data"):
+                    st.cache_data.clear()
+                    st.rerun()
+
+def main():
+    """Main application with improved error handling"""
+    
+    # Header
+    st.title("🤖 AI Banking Assistant")
+    st.markdown("**Powered by Real AI + Live Currency Data from Central Bank of Azerbaijan**")
+    
+    # Initialize chat interface
+    chat = ChatInterface()
+    
+    # Sidebar with settings and currency
+    with st.sidebar:
+        st.header("⚙️ Settings")
         
-        if ai_assistant.setup_complete:
-            st.write("✅ Conversational AI")
-            st.write("✅ Banking Knowledge Base")
-            st.write("✅ Document Analysis")
-            if ai_assistant.sentiment_analyzer:
-                st.write("✅ Sentiment Analysis")
-            if ai_assistant.ner_pipeline:
-                st.write("✅ Entity Recognition")
-            if ai_assistant.vectorstore:
-                st.write("✅ Vector Search (RAG)")
+        # Language selection
+        language = st.selectbox(
+            "🌍 Language / Dil",
+            options=["en", "az"],
+            format_func=lambda x: "English" if x == "en" else "Azərbaycan dili",
+            help="Select your preferred language"
+        )
+        
+        # API Status check with retry
+        st.subheader("🔍 System Status")
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            if st.session_state.backend_status == "unknown":
+                health = chat.check_backend_status()
+            else:
+                health = {"status": st.session_state.backend_status}
+        
+        with col2:
+            if st.button("🔄", help="Refresh status"):
+                health = chat.check_backend_status()
+        
+        if "error" in health:
+            st.error(f"❌ Backend: {health.get('type', 'Unknown error')}")
+            with st.expander("Error Details"):
+                st.write(f"**Error**: {health.get('error', 'Unknown')}")
+                st.write(f"**Details**: {health.get('details', 'No details available')}")
+                
+                if health.get('type') == 'connection_error':
+                    st.info("💡 **Troubleshooting:**")
+                    st.write("1. Make sure the backend is running:")
+                    st.code("python back.py")
+                    st.write("2. Check if port 8000 is available")
+                    st.write("3. Verify the API_BASE_URL setting")
         else:
-            st.write("⚠️ Limited functionality available")
+            st.success("✅ AI Backend: Online")
+            if health.get('ai_models'):
+                for model, status in health['ai_models'].items():
+                    icon = "✅" if status == "online" else "❌"
+                    st.caption(f"{icon} {model.replace('_', ' ').title()}: {status}")
         
         st.markdown("---")
-        if st.button("🔄 Restart AI"):
-            st.cache_resource.clear()
+        
+        # Display currency rates
+        chat.display_currency_sidebar()
+        
+        st.markdown("---")
+        
+        # Quick actions
+        st.subheader("🚀 Quick Actions")
+        if st.button("🔄 Refresh All Data"):
+            st.cache_data.clear()
+            st.session_state.backend_status = "unknown"
+            st.rerun()
+        
+        if st.button("🗑️ Clear Chat History"):
+            st.session_state.messages = []
             st.rerun()
     
-    # Chat interface
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Salam! Welcome to AI Banking Assistant. How can I help you with banking services today?"}
-        ]
+    # Main chat interface
+    col1, col2 = st.columns([3, 1])
     
-    # Display messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-            if message["role"] == "assistant" and "metadata" in message:
-                with st.expander("🔍 AI Details"):
-                    st.json(message["metadata"])
-    
-    # Chat input
-    if prompt := st.chat_input("Ask about loans, accounts, or banking services..."):
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
+    with col1:
+        # Display chat history
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+                
+                # Show AI metadata for assistant messages
+                if message["role"] == "assistant" and "metadata" in message:
+                    metadata = message["metadata"]
+                    
+                    # Metrics
+                    met_cols = st.columns(4)
+                    with met_cols[0]:
+                        confidence = metadata.get('confidence', 0)
+                        st.metric("Confidence", f"{confidence:.1%}")
+                    with met_cols[1]:
+                        st.metric("Model", metadata.get('model_used', 'Unknown'))
+                    with met_cols[2]:
+                        if metadata.get('sentiment'):
+                            sentiment = metadata['sentiment']
+                            st.metric("Sentiment", sentiment.get('label', 'N/A'))
+                    with met_cols[3]:
+                        if metadata.get('sources'):
+                            st.metric("Sources", len(metadata['sources']))
+                    
+                    # Show sources in expander
+                    if metadata.get('sources'):
+                        with st.expander("📚 Information Sources"):
+                            for source in metadata['sources']:
+                                st.write(f"• {source}")
+                    
+                    # Show error details if any
+                    if metadata.get('error'):
+                        with st.expander("⚠️ Error Details"):
+                            st.error(f"Error: {metadata['error']}")
         
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        # Get AI response
-        with st.chat_message("assistant"):
-            with st.spinner("🤖 Processing..."):
-                if ai_assistant.setup_complete:
-                    response_data = ai_assistant.process_query(prompt, language)
-                else:
-                    # Fallback response
-                    response_data = {
-                        "response": "I'm experiencing technical difficulties. For banking assistance, please contact customer service or visit our website.",
-                        "confidence": 0.1,
-                        "model": "fallback"
-                    }
-                
-                st.markdown(response_data["response"])
-                
-                # Show metadata
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Confidence", f"{response_data['confidence']:.0%}")
-                with col2:
-                    st.metric("Model", response_data.get("model", "Unknown"))
-                with col3:
-                    if "sentiment" in response_data:
-                        sentiment = response_data["sentiment"]
-                        st.metric("Sentiment", f"{sentiment['label']} ({sentiment['score']:.2f})")
-        
-        # Add assistant message
-        st.session_state.messages.append({
-            "role": "assistant", 
-            "content": response_data["response"],
-            "metadata": response_data
-        })
-    
-    # Document analysis section
-    st.markdown("---")
-    st.subheader("📄 Document Analysis")
-    
-    uploaded_file = st.file_uploader(
-        "Upload banking documents for analysis",
-        type=['txt', 'pdf', 'jpg', 'png', 'docx']
-    )
-    
-    if uploaded_file:
-        with st.spinner("🔍 Analyzing document..."):
-            try:
-                content = ""
-                if uploaded_file.type == "text/plain":
-                    content = str(uploaded_file.read(), "utf-8")
-                else:
-                    content = f"Document: {uploaded_file.name} ({uploaded_file.type})"
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.subheader("📋 Document Info")
-                    st.write(f"**Name:** {uploaded_file.name}")
-                    st.write(f"**Type:** {uploaded_file.type}")
-                    st.write(f"**Size:** {len(uploaded_file.getvalue())} bytes")
-                
-                with col2:
-                    st.subheader("🤖 AI Analysis")
-                    if ai_assistant.setup_complete:
-                        analysis = f"This appears to be a {uploaded_file.type} document. For detailed analysis, please ensure all banking documents contain clear text and meet regulatory requirements."
+        # Chat input
+        if prompt := st.chat_input("Ask about banking services, currency rates, or anything else..."):
+            # Add user message
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            
+            # Display user message immediately
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            
+            # Get AI response
+            with st.chat_message("assistant"):
+                with st.spinner("🤖 AI is thinking..."):
+                    
+                    response = chat.send_message(prompt, language)
+                    
+                    if "error" in response:
+                        st.error(f"❌ Error: {response['error']}")
+                        
+                        # Provide helpful error message based on error type
+                        if response.get('type') == 'connection_error':
+                            ai_message = "I'm unable to connect to the AI backend. Please check if the server is running and try again."
+                        elif response.get('type') == 'timeout_error':
+                            ai_message = "The AI is taking longer than usual to respond. Please try a simpler question or try again later."
+                        else:
+                            ai_message = "I'm experiencing technical difficulties. Please try again or contact support."
+                        
+                        metadata = {"error": response["error"], "type": response.get("type", "unknown")}
                     else:
-                        analysis = "Document received. AI analysis not available."
+                        ai_message = response.get("response", "I didn't understand that. Please try again.")
+                        metadata = response
+                        
+                        # Display response
+                        st.markdown(ai_message)
+                        
+                        # Show metrics
+                        if "error" not in response:
+                            met_cols = st.columns(4)
+                            with met_cols[0]:
+                                confidence = response.get('confidence', 0)
+                                st.metric("Confidence", f"{confidence:.1%}")
+                            with met_cols[1]:
+                                st.metric("Model", response.get('model_used', 'AI'))
+                            with met_cols[2]:
+                                if response.get('sentiment'):
+                                    sentiment = response['sentiment']
+                                    st.metric("Sentiment", sentiment.get('label', 'N/A'))
+                            with met_cols[3]:
+                                if response.get('sources'):
+                                    st.metric("Sources", len(response['sources']))
+            
+            # Add assistant message to history
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": ai_message,
+                "metadata": metadata
+            })
+    
+    with col2:
+        # Additional features panel
+        st.subheader("🛠️ AI Features")
+        
+        # Quick questions
+        st.subheader("💡 Try These Questions")
+        
+        quick_questions = [
+            ("💰 Loan Requirements", "What documents do I need to apply for a personal loan in Azerbaijan?"),
+            ("💱 USD Exchange Rate", "What is the current USD to AZN exchange rate from Central Bank?"),
+            ("🏦 Account Types", "What types of bank accounts are available and what are their features?"),
+            ("🌍 Azərbaycan (AZ)", "Kredit almaq üçün hansı sənədlər lazımdır?")
+        ]
+        
+        for button_text, question in quick_questions:
+            if st.button(button_text, use_container_width=True):
+                st.session_state.messages.append({
+                    "role": "user", 
+                    "content": question
+                })
+                st.rerun()
+        
+        # Document upload placeholder
+        with st.expander("📄 Document Analysis"):
+            st.info("Document analysis feature coming soon!")
+            uploaded_file = st.file_uploader(
+                "Upload banking documents",
+                type=['txt', 'pdf', 'docx', 'jpg', 'png'],
+                help="Upload documents for AI analysis"
+            )
+            
+            if uploaded_file:
+                st.warning("Document analysis is not yet implemented in this version.")
+        
+        # Voice input placeholder
+        with st.expander("🎤 Voice Input"):
+            st.info("Voice input feature requires additional setup.")
+            if st.button("🎙️ Record Voice", disabled=True):
+                st.warning("Voice recording not yet implemented")
+        
+        # Currency converter
+        with st.expander("💱 Currency Converter"):
+            # Get currency data for converter
+            currency_response = chat.call_api("/currency", timeout=5)
+            
+            if "error" not in currency_response and currency_response.get('currencies'):
+                currency_data = currency_response
+            else:
+                currency_data = chat.currency_service.fetch_currency_data()
+            
+            if currency_data.get('currencies'):
+                amount = st.number_input("Amount", min_value=0.01, value=100.0, step=0.01)
+                
+                from_currency = st.selectbox(
+                    "From", 
+                    options=["AZN"] + list(currency_data['currencies'].keys()),
+                    index=1 if len(currency_data['currencies']) > 0 else 0
+                )
+                
+                to_currency = st.selectbox(
+                    "To",
+                    options=["AZN"] + list(currency_data['currencies'].keys()),
+                    index=0
+                )
+                
+                if st.button("Convert", use_container_width=True):
+                    try:
+                        if from_currency == "AZN" and to_currency in currency_data['currencies']:
+                            # AZN to foreign currency
+                            rate = currency_data['currencies'][to_currency].get('rate_per_unit', currency_data['currencies'][to_currency]['value'])
+                            result = amount / rate
+                            st.success(f"{amount} AZN = {result:.4f} {to_currency}")
+                        
+                        elif to_currency == "AZN" and from_currency in currency_data['currencies']:
+                            # Foreign currency to AZN
+                            rate = currency_data['currencies'][from_currency].get('rate_per_unit', currency_data['currencies'][from_currency]['value'])
+                            result = amount * rate
+                            st.success(f"{amount} {from_currency} = {result:.4f} AZN")
+                        
+                        elif from_currency in currency_data['currencies'] and to_currency in currency_data['currencies']:
+                            # Foreign to foreign via AZN
+                            from_rate = currency_data['currencies'][from_currency].get('rate_per_unit', currency_data['currencies'][from_currency]['value'])
+                            to_rate = currency_data['currencies'][to_currency].get('rate_per_unit', currency_data['currencies'][to_currency]['value'])
+                            azn_amount = amount * from_rate
+                            result = azn_amount / to_rate
+                            st.success(f"{amount} {from_currency} = {result:.4f} {to_currency}")
+                        
+                        else:
+                            st.warning("Please select different currencies")
                     
-                    st.write(analysis)
-                    
-            except Exception as e:
-                st.error(f"Document analysis failed: {e}")
+                    except Exception as e:
+                        st.error(f"Conversion error: {str(e)}")
+            else:
+                st.error("Currency data not available for conversion")
     
     # Footer
     st.markdown("---")
-    st.markdown("🏦 **AI Banking Assistant** - Powered by Advanced Language Models")
+    col1, col2, col3 = st.columns(3)
     
-    # Debug info (can be removed in production)
-    if st.checkbox("🔧 Show Debug Info"):
-        st.subheader("Debug Information")
-        st.write(f"AI Setup Complete: {ai_assistant.setup_complete}")
-        st.write(f"Model Type: {getattr(ai_assistant, 'model_type', 'Unknown')}")
-        st.write(f"Vector Store: {'Available' if ai_assistant.vectorstore else 'Not Available'}")
-        st.write(f"Speech Available: {SPEECH_AVAILABLE}")
-        st.write(f"Transformers Available: {TRANSFORMERS_AVAILABLE}")
+    with col1:
+        st.markdown("🤖 **Powered by Real AI**")
+        st.caption("LLMs • RAG • Vector Search")
+    
+    with col2:
+        st.markdown("💱 **Live Currency Data**")
+        st.caption("Central Bank of Azerbaijan")
+    
+    with col3:
+        st.markdown("🏦 **Banking Assistant**")
+        st.caption("24/7 AI Support")
+    
+    # Debug information in footer (only shown in development)
+    if st.checkbox("Show Debug Info", value=False):
+        st.subheader("🐛 Debug Information")
+        st.write(f"Backend Status: {st.session_state.backend_status}")
+        st.write(f"Session ID: {st.session_state.session_id}")
+        st.write(f"Messages Count: {len(st.session_state.messages)}")
+        st.write(f"API Base URL: {API_BASE_URL}")
 
 if __name__ == "__main__":
     main()
