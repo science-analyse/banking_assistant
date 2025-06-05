@@ -79,11 +79,24 @@ pip install -r requirements-free.txt
 
 #### **C. Environment Variables**
 ```bash
-# .env file
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
-GEMINI_API_KEY=your_gemini_key
-ENVIRONMENT=production
+# Google Gemini AI (Required)
+GEMINI_API_KEY=
+
+# Neon PostgreSQL Database (Required)
+PGHOST=
+PGDATABASE=
+PGUSER=
+PGPASSWORD=
+PGPORT=
+DATABASE_SCHEMA=
+
+# Application Settings
+ENVIRONMENT=
+PORT=
+FRONTEND_URL=
+
+# Database URL (constructed from above)
+DATABASE_URL=
 ```
 
 ---
