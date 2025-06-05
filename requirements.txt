@@ -35,4 +35,4 @@ starlette==0.45.3
 gunicorn==21.2.0
 
 # Optional: For enhanced error handling
-sentry-sdk[fastapi]==1.40.0slowapi==0.1.9
+slowapi
