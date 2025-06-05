@@ -27,7 +27,7 @@ import redis.asyncio as redis
 from tenacity import retry, stop_after_attempt, wait_exponential
 import secrets
 import hashlib
-from mcp_client import MCPBankingClient
+from mcp_client import EnhancedMCPBankingClient
 from config import settings
 
 # Enhanced Logging Configuration
@@ -184,7 +184,7 @@ async def lifespan(app: FastAPI):
         logger.info("Database pool created successfully")
         
         # Initialize MCP client
-        mcp_client = MCPBankingClient()
+        mcp_client = EnhancedMCPBankingClient()
         try:
             await mcp_client.initialize()
             logger.info("MCP client initialized successfully")
@@ -419,7 +419,7 @@ async def service_worker():
 async def compare_loan_rates(
     request: Request,
     loan_request: LoanRequest,
-    mcp: Optional[MCPBankingClient] = Depends(get_mcp_client)
+    mcp: Optional[EnhancedMCPBankingClient] = Depends(get_mcp_client)
 ):
     """Enhanced loan comparison with MCP integration and caching"""
     try:
@@ -491,7 +491,7 @@ async def compare_loan_rates(
 async def find_branches(
     request: Request,
     branch_request: BranchRequest,
-    mcp: Optional[MCPBankingClient] = Depends(get_mcp_client)
+    mcp: Optional[EnhancedMCPBankingClient] = Depends(get_mcp_client)
 ):
     """Enhanced branch finder with MCP integration"""
     try:
@@ -547,7 +547,7 @@ async def find_branches(
 async def chat_with_ai(
     request: Request,
     message: ChatMessage,
-    mcp: Optional[MCPBankingClient] = Depends(get_mcp_client)
+    mcp: Optional[EnhancedMCPBankingClient] = Depends(get_mcp_client)
 ):
     """Enhanced AI chat with MCP tools and security"""
     try:

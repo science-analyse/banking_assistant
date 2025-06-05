@@ -1,5 +1,3 @@
-# Updated requirements.txt with MCP dependencies
-
 # Web Framework
 fastapi==0.115.9
 uvicorn[standard]==0.34.3
