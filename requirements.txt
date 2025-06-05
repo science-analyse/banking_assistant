@@ -37,3 +37,4 @@ gunicorn==21.2.0
 # Optional: For enhanced error handling
 slowapi
 redis
+tenacity
