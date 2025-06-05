@@ -1,0 +1,460 @@
+# AI Banking Assistant - Complete Docker Compose Configuration
+# Version 2.0.0 with Production-Ready Services
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # APPLICATION SERVICE
+  # =============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    container_name: banking-assistant-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-banking_user}:${POSTGRES_PASSWORD:-banking_password}@postgres:5432/${POSTGRES_DB:-banking_assistant}
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+      - SENTRY_DSN=${SENTRY_DSN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app_logs:/app/logs
+      - app_data:/app/data
+    networks:
+      - banking_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.banking-app.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.banking-app.tls=true"
+      - "traefik.http.routers.banking-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.banking-app.loadbalancer.server.port=8000"
+
+  # =============================================================================
+  # DATABASE SERVICE (PostgreSQL)
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: banking-assistant-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-banking_assistant}
+      - POSTGRES_USER=${POSTGRES_USER:-banking_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-banking_password}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./scripts/generate.sql:/docker-entrypoint-initdb.d/02-schema.sql:ro
+      - postgres_backups:/backups
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - banking_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-banking_user} -d ${POSTGRES_DB:-banking_assistant}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c log_statement=error
+      -c log_min_duration_statement=1000
+
+  # =============================================================================
+  # REDIS SERVICE (Caching & Rate Limiting)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: banking-assistant-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/etc/redis/redis.conf:ro
+    networks:
+      - banking_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: redis-server /etc/redis/redis.conf
+    sysctls:
+      - net.core.somaxconn=1024
+
+  # =============================================================================
+  # NGINX (Reverse Proxy & Static Files)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: banking-assistant-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static:/var/www/static:ro
+      - nginx_logs:/var/log/nginx
+      - letsencrypt_certs:/etc/letsencrypt:ro
+      - letsencrypt_www:/var/www/certbot:ro
+    depends_on:
+      - app
+    networks:
+      - banking_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`${DOMAIN:-localhost}`)"
+
+  # =============================================================================
+  # SSL CERTIFICATE MANAGEMENT (Let's Encrypt)
+  # =============================================================================
+  certbot:
+    image: certbot/certbot:latest
+    container_name: banking-assistant-certbot
+    volumes:
+      - letsencrypt_certs:/etc/letsencrypt
+      - letsencrypt_www:/var/www/certbot
+    environment:
+      - CERTBOT_EMAIL=${LETSENCRYPT_EMAIL:-admin@localhost}
+    depends_on:
+      - nginx
+    profiles:
+      - ssl
+    networks:
+      - banking_network
+
+  # =============================================================================
+  # MONITORING SERVICES
+  # =============================================================================
+  
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: banking-assistant-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - banking_network
+    profiles:
+      - monitoring
+
+  # Grafana (Metrics Visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: banking-assistant-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - banking_network
+    profiles:
+      - monitoring
+
+  # =============================================================================
+  # BACKUP SERVICE
+  # =============================================================================
+  backup:
+    image: alpine:latest
+    container_name: banking-assistant-backup
+    restart: "no"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-banking_assistant}
+      - POSTGRES_USER=${POSTGRES_USER:-banking_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-banking_password}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET=${BACKUP_S3_BUCKET}
+    volumes:
+      - postgres_backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    depends_on:
+      - postgres
+    networks:
+      - banking_network
+    profiles:
+      - backup
+    command: sh -c "apk add --no-cache postgresql-client aws-cli && /backup.sh"
+
+  # =============================================================================
+  # DEVELOPMENT SERVICES (Only for Development)
+  # =============================================================================
+  
+  # pgAdmin (Database Management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: banking-assistant-pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@localhost}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - banking_network
+    profiles:
+      - development
+
+  # Mailhog (Email Testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: banking-assistant-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_WEB_PORT:-8025}:8025"
+    networks:
+      - banking_network
+    profiles:
+      - development
+
+  # Redis Commander (Redis Management)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: banking-assistant-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    depends_on:
+      - redis
+    networks:
+      - banking_network
+    profiles:
+      - development
+
+  # =============================================================================
+  # LOAD BALANCER (Traefik)
+  # =============================================================================
+  traefik:
+    image: traefik:v3.0
+    container_name: banking-assistant-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${TRAEFIK_DASHBOARD_PORT:-8080}:8080"
+    environment:
+      - TRAEFIK_API_DASHBOARD=true
+      - TRAEFIK_API_INSECURE=false
+      - TRAEFIK_ENTRYPOINTS_WEB_ADDRESS=:80
+      - TRAEFIK_ENTRYPOINTS_WEBSECURE_ADDRESS=:443
+      - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=${LETSENCRYPT_EMAIL}
+      - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_STORAGE=/letsencrypt/acme.json
+      - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_HTTPCHALLENGE_ENTRYPOINT=web
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+    networks:
+      - banking_network
+    profiles:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  # Application Data
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+  app_data:
+    driver: local
+
+  # Database
+  postgres_data:
+    driver: local
+  postgres_backups:
+    driver: local
+
+  # Caching
+  redis_data:
+    driver: local
+
+  # Web Server
+  nginx_logs:
+    driver: local
+
+  # SSL Certificates
+  letsencrypt_certs:
+    driver: local
+  letsencrypt_www:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
+
+  # Monitoring
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+  # Development
+  pgadmin_data:
+    driver: local
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  banking_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+
+# Production Deployment:
+# docker-compose up -d
+
+# Development with Monitoring:
+# docker-compose --profile development --profile monitoring up -d
+
+# SSL Setup:
+# docker-compose --profile ssl run --rm certbot certonly --webroot --webroot-path=/var/www/certbot -d your-domain.com
+
+# Backup Database:
+# docker-compose --profile backup run --rm backup
+
+# View Logs:
+# docker-compose logs -f app
+
+# Scale Application:
+# docker-compose up -d --scale app=3
+
+# Stop All Services:
+# docker-compose down
+
+# Remove All Data (CAUTION):
+# docker-compose down -v --remove-orphans
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC CONFIGURATIONS
+# =============================================================================
+
+# For Production:
+# - Use strong passwords
+# - Set proper CORS origins
+# - Configure SSL certificates
+# - Enable monitoring
+# - Set up regular backups
+# - Use external secret management
+
+# For Development:
+# - Use --profile development
+# - Set DEBUG=true in environment
+# - Use weaker passwords for convenience
+# - Enable all development tools
+
+# For Staging:
+# - Use production-like configuration
+# - Enable monitoring
+# - Use staging domains
+# - Test SSL certificates
+
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+
+# 1. Change default passwords before production
+# 2. Use environment-specific .env files
+# 3. Secure Docker daemon and registry
+# 4. Regular security updates for images
+# 5. Implement proper firewall rules
+# 6. Use secrets management for sensitive data
+# 7. Regular security audits and vulnerability scanning
+# 8. Monitor logs for suspicious activity
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+
+# 1. Use multi-stage Docker builds
+# 2. Configure proper resource limits
+# 3. Use Alpine images where possible
+# 4. Implement proper caching strategies
+# 5. Configure database connection pooling
+# 6. Use CDN for static assets
+# 7. Enable compression in nginx
+# 8. Monitor and optimize database queries
