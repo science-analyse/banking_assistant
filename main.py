@@ -28,6 +28,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import secrets
 import hashlib
 from mcp_client import MCPBankingClient
+from config import settings
 
 # Enhanced Logging Configuration
 def setup_logging():
