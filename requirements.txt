@@ -27,7 +27,6 @@ pydantic-settings==2.9.1
 python-dotenv==1.1.0
 python-dateutil==2.9.0.post0
 structlog==23.2.0
-slowapi=0.1.9
 
 # Static Files & Templates
 starlette==0.45.3
