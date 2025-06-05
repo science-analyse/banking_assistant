@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center text-white py-5 mb-5">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="bi bi-bank2 me-3"></i>
+            AI Banking Assistant for Azerbaijan
+        </h1>
+        <p class="lead mb-4">Free loan comparison, branch finder, and AI-powered banking help</p>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="/loans" class="btn btn-light btn-lg">
+                        <i class="bi bi-currency-dollar me-2"></i>Compare Loans
+                    </a>
+                    <a href="/branches" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-geo-alt me-2"></i>Find Branches
+                    </a>
+                    <a href="/chat" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-chat-dots me-2"></i>Ask AI
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Quick Stats -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-3">
+            <div class="metric-card text-center">
+                <i class="bi bi-bank display-4 text-primary mb-3"></i>
+                <h3>{{ total_banks or 5 }}</h3>
+                <p class="mb-0">Banks Available</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card text-center">
+                <i class="bi bi-graph-up display-4 text-success mb-3"></i>
+                <h3>Real-time</h3>
+                <p class="mb-0">Rate Updates</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card text-center">
+                <i class="bi bi-geo display-4 text-info mb-3"></i>
+                <h3>50+</h3>
+                <p class="mb-0">Branch Locations</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card text-center">
+                <i class="bi bi-robot display-4 text-warning mb-3"></i>
+                <h3>24/7</h3>
+                <p class="mb-0">AI Assistant</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mb-5">
+        <div class="col-lg-4 mb-4">
+            <div class="feature-card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="bi bi-currency-dollar display-4 text-primary"></i>
+                    </div>
+                    <h4 class="text-center mb-3">Loan Comparison</h4>
+                    <p class="text-muted">Compare interest rates from 5+ Azerbaijan banks instantly. Find the best personal loans, mortgages, and auto loans with real-time calculations.</p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Personal loans from 8.5%</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Mortgages from 6.0%</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Auto loans from 7.5%</li>
+                    </ul>
+                    <div class="text-center">
+                        <a href="/loans" class="btn btn-primary">Compare Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="feature-card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="bi bi-geo-alt display-4 text-success"></i>
+                    </div>
+                    <h4 class="text-center mb-3">Branch Finder</h4>
+                    <p class="text-muted">Find the nearest bank branches with interactive maps, directions, and real-time information about working hours and services.</p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Interactive map with directions</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Working hours & contact info</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Distance calculator</li>
+                    </ul>
+                    <div class="text-center">
+                        <a href="/branches" class="btn btn-success">Find Branches</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="feature-card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="bi bi-chat-dots display-4 text-info"></i>
+                    </div>
+                    <h4 class="text-center mb-3">AI Assistant</h4>
+                    <p class="text-muted">Get expert banking advice in Azerbaijani and English. Ask questions about loans, accounts, or any banking service.</p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Bilingual support (AZ/EN)</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Expert banking advice</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>24/7 availability</li>
+                    </ul>
+                    <div class="text-center">
+                        <a href="/chat" class="btn btn-info">Chat Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Currency Rates Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="bi bi-currency-exchange me-2"></i>
+                Current Exchange Rates (AZN)
+            </h2>
+            
+            {% if currency_rates %}
+            <div class="row justify-content-center">
+                {% for currency, rate in currency_rates.rates.items() %}
+                <div class="col-md-2 col-sm-4 col-6 mb-3">
+                    <div class="currency-card text-center">
+                        <div class="currency-flag">
+                            {% if currency == 'USD' %}🇺🇸
+                            {% elif currency == 'EUR' %}🇪🇺
+                            {% elif currency == 'RUB' %}🇷🇺
+                            {% elif currency == 'TRY' %}🇹🇷
+                            {% elif currency == 'GBP' %}🇬🇧
+                            {% else %}💱{% endif %}
+                        </div>
+                        <h5>{{ currency }}</h5>
+                        <h4 class="text-primary">{{ "%.3f"|format(rate) }}</h4>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <p class="text-center text-muted mt-3">
+                <i class="bi bi-clock me-1"></i>
+                Last updated: {{ currency_rates.last_updated }}
+            </p>
+            {% else %}
+            <div class="text-center">
+                <p class="text-muted">Currency rates are currently unavailable</p>
+            </div>
+            {% endif %}
+            
+            <div class="text-center">
+                <a href="/currency" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-right me-2"></i>View All Rates & Converter
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Getting Started Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="getting-started-section">
+                <h2 class="text-center mb-4">
+                    <i class="bi bi-rocket me-2"></i>
+                    Getting Started
+                </h2>
+                
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="step-card text-center">
+                            <div class="step-number">1</div>
+                            <h5>Compare Loans</h5>
+                            <p>Use our loan comparison tool to find the best interest rates from multiple banks</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="step-card text-center">
+                            <div class="step-number">2</div>
+                            <h5>Find Branches</h5>
+                            <p>Locate the nearest bank branches with our interactive map and get directions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="step-card text-center">
+                            <div class="step-number">3</div>
+                            <h5>Ask AI</h5>
+                            <p>Chat with our AI assistant for personalized banking advice and answers</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="step-card text-center">
+                            <div class="step-number">4</div>
+                            <h5>Check Rates</h5>
+                            <p>Monitor real-time currency exchange rates and use our converter tool</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <h4 class="text-success">100% Free Service</h4>
+                    <p class="text-muted">No registration required • No hidden fees • Always free to use</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Floating Button -->
+<div class="floating-actions">
+    <div class="btn-group-vertical" role="group">
+        <button type="button" class="btn btn-primary btn-sm" onclick="scrollToTop()">
+            <i class="bi bi-arrow-up"></i>
+        </button>
+        <a href="/chat" class="btn btn-success btn-sm">
+            <i class="bi bi-chat-dots"></i>
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh currency rates every 5 minutes
+    setInterval(function() {
+        fetch('/api/currency/rates')
+            .then(response => response.json())
+            .then(data => {
+                // Update currency display if needed
+                console.log('Currency rates updated');
+            })
+            .catch(error => {
+                console.error('Error updating currency rates:', error);
+            });
+    }, 300000); // 5 minutes
+
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // Language persistence
+    const savedLanguage = localStorage.getItem('language') || 'en';
+    setLanguage(savedLanguage);
+</script>
+{% endblock %}

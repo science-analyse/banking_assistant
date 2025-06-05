@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 import os
 import json
@@ -75,6 +78,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Configure templates and static files
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Configure Gemini AI
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 if gemini_api_key:
@@ -102,14 +109,6 @@ class BranchRequest(BaseModel):
     longitude: Optional[float] = 49.8671
     limit: Optional[int] = 10
 
-class BankResponse(BaseModel):
-    id: int
-    bank_code: str
-    name: str
-    website: Optional[str]
-    phone: Optional[str]
-    is_active: bool
-
 # Database dependency
 async def get_db():
     """Get database connection from pool"""
@@ -122,16 +121,12 @@ async def get_db():
 # Utility functions
 def calculate_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Calculate distance between two coordinates using Haversine formula"""
-    # Convert to radians
     lat1, lng1, lat2, lng2 = map(math.radians, [lat1, lng1, lat2, lng2])
-    
-    # Haversine formula
     dlat = lat2 - lat1
     dlng = lng2 - lng1
     a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng/2)**2
     c = 2 * math.asin(math.sqrt(a))
     r = 6371  # Earth's radius in kilometers
-    
     return c * r
 
 def calculate_monthly_payment(amount: float, annual_rate: float, months: int) -> float:
@@ -184,50 +179,78 @@ async def get_currency_rates_from_db(connection) -> Dict[str, Any]:
             "last_updated": datetime.now().date().isoformat()
         }
 
-async def update_currency_rates_from_cbar():
-    """Fetch and update currency rates from CBAR (optional background task)"""
+# Template Routes
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request, db: asyncpg.Connection = Depends(get_db)):
+    """Home page"""
     try:
-        async with aiohttp.ClientSession() as session:
-            # CBAR provides XML feed - for now using fallback
-            # In production, you'd parse the XML from CBAR
-            current_rates = {
-                "USD": 1.70,
-                "EUR": 1.85,
-                "RUB": 0.019,
-                "TRY": 0.050,
-                "GBP": 2.10
-            }
-            
-            if db_pool:
-                async with db_pool.acquire() as connection:
-                    for currency, rate in current_rates.items():
-                        await connection.execute("""
-                            INSERT INTO currency_rates (currency_code, rate_to_azn, rate_date)
-                            VALUES ($1, $2, CURRENT_DATE)
-                            ON CONFLICT (currency_code, rate_date) 
-                            DO UPDATE SET rate_to_azn = $2, created_at = CURRENT_TIMESTAMP
-                        """, currency, rate)
-            
-            logger.info("Currency rates updated successfully")
+        # Get currency rates for display
+        rates_data = await get_currency_rates_from_db(db)
+        
+        # Get total banks count
+        total_banks = await db.fetchval("SELECT COUNT(*) FROM banks WHERE is_active = true")
+        
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "currency_rates": rates_data,
+            "total_banks": total_banks,
+            "page_title": "AI Banking Assistant - Azerbaijan"
+        })
     except Exception as e:
-        logger.error(f"Failed to update currency rates: {e}")
+        logger.error(f"Error loading home page: {e}")
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "error": "Unable to load data",
+            "page_title": "AI Banking Assistant - Azerbaijan"
+        })
 
-# API Routes
-@app.get("/")
-async def root():
-    return {
-        "message": "AI Banking Assistant for Azerbaijan",
-        "status": "running",
-        "version": "2.0.0",
-        "database": "Neon PostgreSQL",
-        "features": ["loan_comparison", "branch_locator", "currency_rates", "ai_chat"]
-    }
+@app.get("/loans", response_class=HTMLResponse)
+async def loans_page(request: Request):
+    """Loan comparison page"""
+    return templates.TemplateResponse("loans.html", {
+        "request": request,
+        "page_title": "Loan Comparison - AI Banking Assistant"
+    })
 
-@app.get("/health")
+@app.get("/branches", response_class=HTMLResponse)
+async def branches_page(request: Request):
+    """Branch finder page"""
+    return templates.TemplateResponse("branches.html", {
+        "request": request,
+        "page_title": "Branch Finder - AI Banking Assistant"
+    })
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    """AI Chat page"""
+    return templates.TemplateResponse("chat.html", {
+        "request": request,
+        "page_title": "AI Assistant - AI Banking Assistant"
+    })
+
+@app.get("/currency", response_class=HTMLResponse)
+async def currency_page(request: Request, db: asyncpg.Connection = Depends(get_db)):
+    """Currency rates page"""
+    try:
+        rates_data = await get_currency_rates_from_db(db)
+        return templates.TemplateResponse("currency.html", {
+            "request": request,
+            "currency_rates": rates_data,
+            "page_title": "Currency Rates - AI Banking Assistant"
+        })
+    except Exception as e:
+        logger.error(f"Error loading currency page: {e}")
+        return templates.TemplateResponse("currency.html", {
+            "request": request,
+            "error": "Unable to load currency data",
+            "page_title": "Currency Rates - AI Banking Assistant"
+        })
+
+# API Routes (keep existing functionality)
+@app.get("/api/health")
 async def health_check(db: asyncpg.Connection = Depends(get_db)):
     """Health check endpoint"""
     try:
-        # Test database connection
         result = await db.fetchval("SELECT 1")
         return {
             "status": "healthy",
@@ -237,7 +260,7 @@ async def health_check(db: asyncpg.Connection = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database unhealthy: {str(e)}")
 
-@app.get("/banks")
+@app.get("/api/banks")
 async def get_all_banks(db: asyncpg.Connection = Depends(get_db)):
     """Get all available banks"""
     try:
@@ -260,7 +283,7 @@ async def get_all_banks(db: asyncpg.Connection = Depends(get_db)):
         logger.error(f"Error fetching banks: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch banks")
 
-@app.post("/loans/compare")
+@app.post("/api/loans/compare")
 async def compare_loan_rates(request: LoanRequest, db: asyncpg.Connection = Depends(get_db)):
     """Compare loan rates across all banks"""
     try:
@@ -336,7 +359,7 @@ async def compare_loan_rates(request: LoanRequest, db: asyncpg.Connection = Depe
         logger.error(f"Error comparing loan rates: {e}")
         raise HTTPException(status_code=500, detail="Failed to compare loan rates")
 
-@app.post("/branches/find")
+@app.post("/api/branches/find")
 async def find_branches(request: BranchRequest, db: asyncpg.Connection = Depends(get_db)):
     """Find nearest bank branches"""
     try:
@@ -434,9 +457,9 @@ async def find_branches(request: BranchRequest, db: asyncpg.Connection = Depends
         logger.error(f"Error finding branches: {e}")
         raise HTTPException(status_code=500, detail="Failed to find branches")
 
-@app.get("/currency")
-async def get_currency_rates(db: asyncpg.Connection = Depends(get_db)):
-    """Get current currency rates"""
+@app.get("/api/currency/rates")
+async def get_currency_rates_api(db: asyncpg.Connection = Depends(get_db)):
+    """Get current currency rates API"""
     try:
         rates_data = await get_currency_rates_from_db(db)
         
@@ -451,23 +474,7 @@ async def get_currency_rates(db: asyncpg.Connection = Depends(get_db)):
         logger.error(f"Error fetching currency rates: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch currency rates")
 
-@app.post("/currency/update")
-async def update_currency_rates(db: asyncpg.Connection = Depends(get_db)):
-    """Manually trigger currency rates update"""
-    try:
-        await update_currency_rates_from_cbar()
-        rates_data = await get_currency_rates_from_db(db)
-        
-        return {
-            "message": "Currency rates updated successfully",
-            "rates": rates_data["rates"],
-            "last_updated": rates_data["last_updated"]
-        }
-    except Exception as e:
-        logger.error(f"Error updating currency rates: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update currency rates")
-
-@app.post("/chat")
+@app.post("/api/chat")
 async def chat_with_ai(message: ChatMessage, db: asyncpg.Connection = Depends(get_db)):
     """Chat with AI banking assistant"""
     try:
@@ -598,35 +605,6 @@ def get_suggestions(language):
             "Check currency rates", 
             "Ask about banking services"
         ]
-
-@app.get("/analytics/summary")
-async def get_analytics_summary(db: asyncpg.Connection = Depends(get_db)):
-    """Get basic analytics summary"""
-    try:
-        queries = await db.fetch("""
-            SELECT 
-                query_type,
-                COUNT(*) as count,
-                DATE(created_at) as query_date
-            FROM user_queries 
-            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
-            GROUP BY query_type, DATE(created_at)
-            ORDER BY query_date DESC, count DESC
-        """)
-        
-        total_queries = await db.fetchval("""
-            SELECT COUNT(*) FROM user_queries 
-            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
-        """)
-        
-        return {
-            "total_queries_7_days": total_queries,
-            "queries_by_type": [dict(row) for row in queries],
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error fetching analytics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch analytics")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

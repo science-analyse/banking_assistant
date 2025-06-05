@@ -1,0 +1,662 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="hero-section text-center text-white py-4">
+                <h1 class="display-5 fw-bold mb-3">
+                    <i class="bi bi-currency-exchange me-3"></i>
+                    Currency Exchange Rates
+                </h1>
+                <p class="lead">Real-time rates from Central Bank of Azerbaijan (CBAR) • Free currency converter</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Rates Display -->
+    {% if currency_rates %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="bi bi-graph-up me-2"></i>
+                Current Exchange Rates (AZN)
+            </h2>
+            
+            <div class="row justify-content-center">
+                {% for currency, rate in currency_rates.rates.items() %}
+                <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                    <div class="currency-card fade-in" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                        <div class="currency-flag mb-2">
+                            {% if currency == 'USD' %}🇺🇸
+                            {% elif currency == 'EUR' %}🇪🇺
+                            {% elif currency == 'RUB' %}🇷🇺
+                            {% elif currency == 'TRY' %}🇹🇷
+                            {% elif currency == 'GBP' %}🇬🇧
+                            {% else %}💱{% endif %}
+                        </div>
+                        <h5 class="fw-bold">{{ currency }}</h5>
+                        <h3 class="text-primary mb-1">{{ "%.4f"|format(rate) }}</h3>
+                        <small class="text-muted">per 1 {{ currency }}</small>
+                        
+                        <!-- Quick converter buttons -->
+                        <div class="mt-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickConvert(1, '{{ currency }}', 'AZN')">
+                                1 → AZN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="text-center">
+                <p class="text-muted mb-2">
+                    <i class="bi bi-clock me-1"></i>
+                    Last updated: {{ currency_rates.last_updated }}
+                </p>
+                <p class="text-muted small">
+                    <i class="bi bi-bank me-1"></i>
+                    Rates provided by Central Bank of Azerbaijan (CBAR)
+                </p>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshRates()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>
+                    Refresh Rates
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Currency Converter -->
+        <div class="col-lg-6 mb-4">
+            <div class="feature-card h-100">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">
+                        <i class="bi bi-arrow-left-right me-2"></i>
+                        Currency Converter
+                    </h4>
+                    
+                    <form id="currencyConverter" class="needs-validation" novalidate>
+                        <div class="row mb-3">
+                            <div class="col-7">
+                                <label for="amount" class="form-label">Amount</label>
+                                <input type="number" 
+                                       class="form-control form-control-lg" 
+                                       id="amount" 
+                                       name="amount" 
+                                       value="100" 
+                                       min="0.01" 
+                                       step="0.01" 
+                                       required>
+                            </div>
+                            <div class="col-5">
+                                <label for="fromCurrency" class="form-label">From</label>
+                                <select class="form-select form-select-lg" id="fromCurrency" name="fromCurrency">
+                                    <option value="AZN">🇦🇿 AZN</option>
+                                    <option value="USD" selected>🇺🇸 USD</option>
+                                    <option value="EUR">🇪🇺 EUR</option>
+                                    <option value="RUB">🇷🇺 RUB</option>
+                                    <option value="TRY">🇹🇷 TRY</option>
+                                    <option value="GBP">🇬🇧 GBP</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mb-3">
+                            <button type="button" class="btn btn-outline-secondary" onclick="swapCurrencies()">
+                                <i class="bi bi-arrow-down-up"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-7">
+                                <label class="form-label">Converted Amount</label>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="convertedAmount" 
+                                       readonly 
+                                       placeholder="Result will appear here">
+                            </div>
+                            <div class="col-5">
+                                <label for="toCurrency" class="form-label">To</label>
+                                <select class="form-select form-select-lg" id="toCurrency" name="toCurrency">
+                                    <option value="AZN" selected>🇦🇿 AZN</option>
+                                    <option value="USD">🇺🇸 USD</option>
+                                    <option value="EUR">🇪🇺 EUR</option>
+                                    <option value="RUB">🇷🇺 RUB</option>
+                                    <option value="TRY">🇹🇷 TRY</option>
+                                    <option value="GBP">🇬🇧 GBP</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-arrow-left-right me-2"></i>
+                                Convert Currency
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="conversionResult" class="mt-3"></div>
+                    
+                    <!-- Quick conversions -->
+                    <div class="mt-4 pt-4 border-top">
+                        <h6 class="text-muted mb-3">Quick Conversions</h6>
+                        <div class="row text-center">
+                            <div class="col-6 mb-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="quickConvert(100, 'USD', 'AZN')">
+                                    $100 → AZN
+                                </button>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="quickConvert(100, 'EUR', 'AZN')">
+                                    €100 → AZN
+                                </button>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="quickConvert(1000, 'AZN', 'USD')">
+                                    1000₼ → USD
+                                </button>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="quickConvert(1000, 'RUB', 'AZN')">
+                                    1000₽ → AZN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rate Charts and Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="feature-card h-100">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Exchange Rate Trends
+                    </h4>
+                    
+                    <!-- Rate comparison chart -->
+                    <div class="chart-container mb-4">
+                        <canvas id="ratesChart" width="400" height="200"></canvas>
+                    </div>
+                    
+                    <!-- Rate change indicators -->
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-success mb-1">
+                                    <i class="bi bi-arrow-up"></i>
+                                    Strongest
+                                </h6>
+                                <strong>USD</strong>
+                                <small class="text-muted d-block">vs AZN</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-primary mb-1">
+                                    <i class="bi bi-arrow-right"></i>
+                                    Stable
+                                </h6>
+                                <strong>EUR</strong>
+                                <small class="text-muted d-block">vs AZN</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Exchange rate information -->
+                    <div class="border-top pt-3">
+                        <h6 class="text-muted mb-3">Exchange Rate Information</h6>
+                        <ul class="list-unstyled small">
+                            <li class="mb-2">
+                                <i class="bi bi-info-circle text-info me-2"></i>
+                                Rates are updated daily by CBAR
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-clock text-warning me-2"></i>
+                                Official rates published at 12:00 PM Baku time
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-bank text-primary me-2"></i>
+                                Bank rates may vary from official rates
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-calculator text-success me-2"></i>
+                                Use for reference - verify with banks for transactions
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historical Rates Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="feature-card">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">
+                        <i class="bi bi-calendar-range me-2"></i>
+                        Historical Exchange Rates
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="historicalCurrency" class="form-label">Currency</label>
+                            <select class="form-select" id="historicalCurrency">
+                                <option value="USD">🇺🇸 USD</option>
+                                <option value="EUR">🇪🇺 EUR</option>
+                                <option value="RUB">🇷🇺 RUB</option>
+                                <option value="TRY">🇹🇷 TRY</option>
+                                <option value="GBP">🇬🇧 GBP</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="timePeriod" class="form-label">Time Period</label>
+                            <select class="form-select" id="timePeriod">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 3 months</option>
+                                <option value="365">Last year</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary d-block" onclick="loadHistoricalData()">
+                                <i class="bi bi-search me-1"></i>
+                                Load Data
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-outline-secondary d-block" onclick="exportHistoricalData()">
+                                <i class="bi bi-download me-1"></i>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Historical chart placeholder -->
+                    <div id="historicalChart" class="text-center py-4">
+                        <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
+                        <p class="text-muted">Select currency and time period to view historical trends</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banking Integration -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">
+                <i class="bi bi-bank me-2"></i>
+                Currency Services at Banks
+            </h3>
+            
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="feature-card text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-currency-exchange display-4 text-primary mb-3"></i>
+                            <h5>Foreign Exchange</h5>
+                            <p class="text-muted">Buy and sell foreign currencies at competitive rates</p>
+                            <ul class="list-unstyled small">
+                                <li>✓ Major currencies available</li>
+                                <li>✓ Real-time competitive rates</li>
+                                <li>✓ Cash and electronic transfers</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-4">
+                    <div class="feature-card text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-credit-card display-4 text-success mb-3"></i>
+                            <h5>Multi-Currency Cards</h5>
+                            <p class="text-muted">Cards that support multiple currencies for travel and business</p>
+                            <ul class="list-unstyled small">
+                                <li>✓ USD, EUR, GBP support</li>
+                                <li>✓ Favorable exchange rates</li>
+                                <li>✓ International acceptance</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-4">
+                    <div class="feature-card text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-piggy-bank display-4 text-info mb-3"></i>
+                            <h5>Foreign Currency Deposits</h5>
+                            <p class="text-muted">Save in foreign currencies with attractive interest rates</p>
+                            <ul class="list-unstyled small">
+                                <li>✓ USD and EUR deposits</li>
+                                <li>✓ Competitive interest rates</li>
+                                <li>✓ Flexible terms</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <a href="/branches" class="btn btn-primary me-3">
+                    <i class="bi bi-geo-alt me-2"></i>
+                    Find Currency Exchange Points
+                </a>
+                <a href="/chat" class="btn btn-outline-primary">
+                    <i class="bi bi-chat-dots me-2"></i>
+                    Ask About Currency Services
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exchange Rate Alerts -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="feature-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-bell me-2"></i>
+                        Rate Alert Setup
+                    </h5>
+                    <p class="text-muted">Get notified when exchange rates reach your target levels</p>
+                    
+                    <form id="rateAlertForm">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <select class="form-select" id="alertCurrency">
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="RUB">RUB</option>
+                                    <option value="TRY">TRY</option>
+                                    <option value="GBP">GBP</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control" placeholder="Target rate" step="0.0001">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary" disabled>
+                            <i class="bi bi-bell me-1"></i>
+                            Set Alert (Coming Soon)
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="feature-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Exchange Rate FAQ
+                    </h5>
+                    <div class="accordion accordion-flush" id="currencyFAQ">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    How often are rates updated?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#currencyFAQ">
+                                <div class="accordion-body">
+                                    Official CBAR rates are published daily at 12:00 PM Baku time. Our system updates automatically when new rates are available.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Why do bank rates differ from official rates?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#currencyFAQ">
+                                <div class="accordion-body">
+                                    Banks add their margin to cover operational costs and profit. The difference typically ranges from 1-3% depending on the currency and transaction amount.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Global variables for currency page
+    let currentRates = {};
+    let ratesChart;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCurrentRates();
+        initializeChart();
+        
+        // Auto-convert on input change
+        ['amount', 'fromCurrency', 'toCurrency'].forEach(field => {
+            document.getElementById(field).addEventListener('change', autoConvert);
+        });
+        
+        document.getElementById('amount').addEventListener('input', debounce(autoConvert, 300));
+    });
+    
+    async function loadCurrentRates() {
+        try {
+            const response = await fetch('/api/currency/rates');
+            const data = await response.json();
+            currentRates = data.rates;
+            updateChart();
+        } catch (error) {
+            console.error('Error loading rates:', error);
+            showAlert('error', 'Failed to load current exchange rates');
+        }
+    }
+    
+    function autoConvert() {
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const fromCurrency = document.getElementById('fromCurrency').value;
+        const toCurrency = document.getElementById('toCurrency').value;
+        
+        if (amount > 0 && currentRates && Object.keys(currentRates).length > 0) {
+            const result = convertCurrency(amount, fromCurrency, toCurrency, currentRates);
+            document.getElementById('convertedAmount').value = result.toFixed(4);
+            
+            // Show conversion details
+            showConversionDetails(amount, fromCurrency, result, toCurrency);
+        }
+    }
+    
+    function showConversionDetails(amount, fromCurrency, result, toCurrency) {
+        const container = document.getElementById('conversionResult');
+        const rate = fromCurrency === 'AZN' ? (1 / currentRates[toCurrency]) : 
+                    toCurrency === 'AZN' ? currentRates[fromCurrency] :
+                    (currentRates[fromCurrency] / currentRates[toCurrency]);
+        
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${amount} ${fromCurrency} = ${result.toFixed(4)} ${toCurrency}</strong>
+                    </div>
+                    <small class="text-muted">Rate: ${rate.toFixed(6)}</small>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-clock me-1"></i>
+                    Updated: ${new Date().toLocaleString()}
+                </small>
+            </div>
+        `;
+    }
+    
+    function swapCurrencies() {
+        const fromSelect = document.getElementById('fromCurrency');
+        const toSelect = document.getElementById('toCurrency');
+        const fromValue = fromSelect.value;
+        const toValue = toSelect.value;
+        
+        fromSelect.value = toValue;
+        toSelect.value = fromValue;
+        
+        autoConvert();
+    }
+    
+    function quickConvert(amount, from, to) {
+        document.getElementById('amount').value = amount;
+        document.getElementById('fromCurrency').value = from;
+        document.getElementById('toCurrency').value = to;
+        autoConvert();
+        
+        // Scroll to converter
+        document.getElementById('currencyConverter').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function initializeChart() {
+        const ctx = document.getElementById('ratesChart');
+        if (!ctx) return;
+        
+        ratesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Exchange Rate (to AZN)',
+                    data: [],
+                    backgroundColor: [
+                        '#3498db',
+                        '#27ae60', 
+                        '#e74c3c',
+                        '#f39c12',
+                        '#9b59b6'
+                    ],
+                    borderColor: '#2c3e50',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Current Exchange Rates vs AZN'
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'AZN per 1 unit'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateChart() {
+        if (!ratesChart || !currentRates) return;
+        
+        const currencies = Object.keys(currentRates);
+        const rates = Object.values(currentRates);
+        
+        ratesChart.data.labels = currencies;
+        ratesChart.data.datasets[0].data = rates;
+        ratesChart.update();
+    }
+    
+    async function refreshRates() {
+        showLoading('Refreshing exchange rates...');
+        
+        try {
+            await loadCurrentRates();
+            autoConvert();
+            showAlert('success', 'Exchange rates updated successfully!');
+        } catch (error) {
+            showAlert('error', 'Failed to refresh rates. Please try again.');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    function loadHistoricalData() {
+        const currency = document.getElementById('historicalCurrency').value;
+        const period = document.getElementById('timePeriod').value;
+        
+        // Mock historical data for demonstration
+        const container = document.getElementById('historicalChart');
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted mt-3">Loading ${currency} rates for last ${period} days...</p>
+            </div>
+        `;
+        
+        // Simulate API call
+        setTimeout(() => {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-graph-up me-2"></i>Historical Data for ${currency}</h6>
+                    <p class="mb-1">Period: Last ${period} days</p>
+                    <p class="mb-1">Highest: ${(currentRates[currency] * 1.05).toFixed(4)} AZN</p>
+                    <p class="mb-1">Lowest: ${(currentRates[currency] * 0.95).toFixed(4)} AZN</p>
+                    <p class="mb-0">Current: ${currentRates[currency].toFixed(4)} AZN</p>
+                </div>
+                <p class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Historical chart feature coming soon. Data will show detailed trends and analysis.
+                </p>
+            `;
+        }, 1500);
+    }
+    
+    function exportHistoricalData() {
+        const currency = document.getElementById('historicalCurrency').value;
+        const period = document.getElementById('timePeriod').value;
+        
+        // Mock CSV data
+        const csvData = `Date,Currency,Rate (AZN)\n` +
+                       `${new Date().toISOString().split('T')[0]},${currency},${currentRates[currency]}\n`;
+        
+        const blob = new Blob([csvData], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currency}_rates_${period}days.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showAlert('success', `${currency} rates exported successfully!`);
+    }
+    
+    // Real-time rate updates (every 5 minutes)
+    setInterval(async function() {
+        try {
+            await loadCurrentRates();
+            console.log('Rates updated automatically');
+        } catch (error) {
+            console.error('Auto-update failed:', error);
+        }
+    }, 300000); // 5 minutes
+</script>
+{% endblock %}
