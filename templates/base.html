@@ -19,9 +19,18 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Favicon -->
+    <!-- Favicon - Complete Setup -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/favicon_io/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/favicon_io/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/favicon_io/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', path='/favicon_io/site.webmanifest') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/favicon_io/favicon.ico') }}">
-    
+
+    <!-- Meta tags for better mobile experience -->
+    <meta name="theme-color" content="#1f4e79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Banking Assistant">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
