@@ -1,169 +1,258 @@
-# 🏦 AI Banking Assistant for Azerbaijan
+# 🏦 AI Banking Assistant for Azerbaijan 2.0
 
-**Single FastAPI Application with Jinja2 Templates**
+**FastAPI Application with MCP (Model Context Protocol) Integration**
 
-A complete AI-powered banking assistant that helps users compare loan rates, find bank branches, get real-time currency rates, and receive banking advice in both English and Azerbaijani.
+A revolutionary AI-powered banking assistant that provides **real-time** loan comparisons, branch finding, currency rates, and banking advice in both English and Azerbaijani. Now enhanced with **MCP integration** for live data from bank APIs.
 
-## ✨ Features
+## ✨ What's New in Version 2.0
 
-- 🔍 **Loan Rate Comparison** - Compare rates from 5+ Azerbaijan banks instantly
-- 📍 **Branch Finder** - Interactive map with nearest bank locations  
-- 💱 **Currency Converter** - Real-time CBAR exchange rates
-- 🤖 **AI Assistant** - Bilingual banking advice (EN/AZ)
-- 📱 **Responsive Design** - Works on all devices
-- 🚀 **Single Deployment** - One FastAPI app with integrated frontend
+### 🚀 **MCP Integration**
+- **Real-time bank data** via Model Context Protocol
+- **Live API connections** to bank systems (when available)
+- **Intelligent fallback** to database when APIs are offline
+- **Tool-aware AI** that can call banking tools dynamically
 
-## 🏗️ Architecture
+### 🔧 **Enhanced Features**
+- **Smart loan comparison** with real-time rates
+- **Dynamic branch finding** with live location data
+- **Contextual AI responses** powered by current banking data
+- **System status monitoring** (MCP/AI/Database health)
+- **Bilingual support** with improved AI understanding
+
+## 🏗️ Architecture Overview
 
 ```
-┌─────────────────────────────────────┐
-│         FastAPI Application        │
-│  ┌─────────────┐ ┌─────────────────┐│
-│  │   Jinja2    │ │  API Endpoints  ││
-│  │  Templates  │ │   (Backend)     ││ 
-│  │ (Frontend)  │ │                 ││
-│  └─────────────┘ └─────────────────┘│
-└─────────────────────────────────────┘
-                    │
-            ┌───────▼───────┐
-            │   PostgreSQL  │
-            │   Database    │
-            └───────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                   User Interface                        │
+│  (React-style templates with real-time indicators)     │
+└─────────────────────┬───────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────┐
+│              FastAPI Application                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│
+│  │   Jinja2    │ │  AI Model   │ │   API Endpoints     ││
+│  │  Templates  │ │ (Gemini)    │ │   (RESTful)         ││
+│  └─────────────┘ └─────────────┘ └─────────────────────┘│
+└─────────────────────┬───────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────┐
+│                MCP Client Layer                         │
+│  (Manages connections to MCP servers and tools)        │
+└─────────────────────┬───────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────┐
+│              MCP Banking Server                         │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│
+│  │   Tools     │ │ Bank APIs   │ │   Database          ││
+│  │ (Loan,etc)  │ │(Real-time)  │ │   (Fallback)        ││
+│  └─────────────┘ └─────────────┘ └─────────────────────┘│
+└─────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start (5 Minutes)
+## 🚀 Quick Start (10 Minutes)
 
-### 1. Clone Repository
+### 1. **Clone & Setup**
 ```bash
-git clone <your-repo-url>
-cd ai-banking-assistant
-```
+git clone https://github.com/Ismat-Samadov/banking_assistant.git
+cd banking_assistant
 
-### 2. Setup Environment
-```bash
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
-# Install dependencies
+# Install dependencies (including MCP)
 pip install -r requirements.txt
+```
 
-# Setup environment variables
+### 2. **Environment Configuration**
+```bash
+# Copy environment template
 cp .env.example .env
-# Edit .env with your configuration
+
+# Edit .env with your settings
+nano .env
 ```
 
-### 3. Configure Database
-
-**Option A: Use Free Cloud Database (Recommended)**
-1. Go to [Neon](https://neon.tech) or [Supabase](https://supabase.com)
-2. Create free PostgreSQL database
-3. Copy connection details to `.env` file
-
-**Option B: Local PostgreSQL**
+**Required Environment Variables:**
 ```bash
-# Install PostgreSQL locally
-# Ubuntu/Debian: sudo apt install postgresql postgresql-contrib
-# macOS: brew install postgresql
-# Windows: Download from postgresql.org
+# Database (choose one)
+DATABASE_URL=postgresql://user:pass@host:port/banking_assistant
+# OR individual components:
+PGHOST=localhost
+PGDATABASE=banking_assistant  
+PGUSER=your_user
+PGPASSWORD=your_password
 
-# Create database
-createdb banking_assistant
+# AI Service (for chat functionality)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Optional: Real Bank API Keys (when available)
+PASHA_BANK_API_KEY=your_pasha_api_key
+KAPITAL_BANK_API_KEY=your_kapital_api_key
 ```
 
-### 4. Get AI API Key
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create free Gemini API key (15 requests/minute free)
-3. Add to `.env` file: `GEMINI_API_KEY=your_key_here`
-
-### 5. Initialize Database
+### 3. **Database Setup**
 ```bash
+# Initialize database with sample data
 python scripts/setup.py
+
+# OR manually run SQL
+# psql -d banking_assistant -f scripts/generate.sql
 ```
 
-### 6. Run Application
+### 4. **Get Free API Keys**
+
+**Gemini AI (Free):**
+1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create account and generate API key
+3. Add to `.env`: `GEMINI_API_KEY=your_key_here`
+
+**Database (Free Options):**
+- [Neon](https://neon.tech) - 500MB free PostgreSQL
+- [Supabase](https://supabase.com) - 500MB free + dashboard
+- [Railway](https://railway.app) - Free PostgreSQL + $5 credit
+
+### 5. **Run Application**
 ```bash
-uvicorn app.main:app --reload
+# Start the application
+uvicorn main:app --reload --port 8000
+
+# Visit http://localhost:8000
 ```
 
-🎉 **Open http://localhost:8000** - Your banking assistant is ready!
+🎉 **Your MCP-powered banking assistant is now running!**
 
 ## 📁 Project Structure
 
 ```
-ai-banking-assistant/
-├── app/
-│   └── main.py              # FastAPI application with Jinja2
-├── templates/               # HTML templates
-│   ├── base.html           # Base template with navigation
-│   ├── index.html          # Home page
-│   ├── loans.html          # Loan comparison
-│   ├── branches.html       # Branch finder
-│   ├── chat.html           # AI chat interface
-│   └── currency.html       # Currency rates
-├── static/                 # Static assets
-│   ├── css/
-│   │   └── styles.css      # Custom styles
-│   └── js/
-│       └── app.js          # JavaScript functionality
-├── scripts/
-│   ├── generate.sql        # Database schema
-│   └── setup.py           # Database initialization
-├── requirements.txt        # Python dependencies
-├── Dockerfile             # Container configuration
-├── docker-compose.yml     # Local development
-└── .env.example           # Environment template
+banking_assistant/
+├── 📁 mcp-banking-assistant/       # MCP Implementation
+│   ├── 📁 mcp-servers/
+│   │   ├── 📄 bank_server.py       # Main MCP server
+│   │   ├── 📄 pasha-bank-server.py # PASHA Bank API
+│   │   ├── 📄 kapital-bank-server.py # Kapital Bank API
+│   │   ├── 📄 branch-finder-server.py # Branch finder
+│   │   └── 📄 currency-server.py   # Currency rates
+│   └── 📁 tools/
+│       ├── 📄 loan_comparison.py   # Loan comparison tools
+│       ├── 📄 branch_finder.py     # Branch finding tools
+│       └── 📄 currency_tools.py    # Currency tools
+├── 📄 main.py                      # FastAPI app with MCP
+├── 📄 mcp_client.py                # MCP client implementation
+├── 📁 templates/                   # HTML templates
+│   ├── 📄 base.html               # Base template with status
+│   ├── 📄 index.html              # Home page
+│   ├── 📄 loans.html              # Loan comparison
+│   ├── 📄 branches.html           # Branch finder
+│   ├── 📄 chat.html               # AI chat interface
+│   └── 📄 currency.html           # Currency rates
+├── 📁 static/                     # Static assets
+│   ├── 📁 css/
+│   │   └── 📄 styles.css          # Enhanced styles
+│   └── 📁 js/
+│       └── 📄 app.js              # Enhanced JavaScript
+├── 📁 scripts/
+│   └── 📄 generate.sql            # Database schema
+├── 📄 requirements.txt            # Dependencies with MCP
+└── 📄 README.md                   # This file
 ```
 
-## 🔧 Configuration
+## 🛠️ MCP Features Explained
 
-### Environment Variables
+### **What is MCP?**
+Model Context Protocol allows AI models to securely access external tools and data sources in real-time, making responses dynamic and current.
 
-**Required:**
-```bash
-# Database (choose one option)
-DATABASE_URL=postgresql://user:pass@host:port/db
-# OR individual components:
-PGHOST=your_host
-PGDATABASE=banking_assistant
-PGUSER=your_user
-PGPASSWORD=your_password
+### **Banking Tools Available to AI:**
 
-# AI Service
-GEMINI_API_KEY=your_gemini_key
+1. **🏦 `compare_all_loan_rates(loan_type, amount, term)`**
+   - Queries multiple bank APIs simultaneously
+   - Returns real-time interest rates and payments
+   - Automatically calculates monthly payments
+
+2. **📍 `find_nearest_branches(bank_name, lat, lng, limit)`**
+   - Gets live branch locations and status
+   - Calculates distances from user location
+   - Returns contact info and hours
+
+3. **💱 `get_currency_conversion(amount, from, to)`**
+   - Fetches current exchange rates
+   - Performs real-time currency conversion
+   - Sources from CBAR (Central Bank of Azerbaijan)
+
+4. **🔍 `get_loan_rates(bank_name, loan_type, amount)`**
+   - Gets specific bank's current rates
+   - Includes eligibility requirements
+   - Returns personalized options
+
+### **Smart Fallback System:**
+```
+Real Bank API → MCP Tool → AI Response ✅
+     ↓ (if API fails)
+Database Fallback → Static Data → AI Response ⚠️
+     ↓ (graceful degradation)
+User gets helpful response either way! 📱
 ```
 
-**Optional:**
-```bash
-ENVIRONMENT=development
-PORT=8000
-SECRET_KEY=your-secret-key
-REDIS_URL=redis://localhost:6379/0
+## 💬 MCP-Enhanced Chat Examples
+
+### **Example 1: Loan Inquiry**
+**👤 User:** "What's the best personal loan rate for 25,000 AZN?"
+
+**🤖 AI Process:**
+1. Detects loan-related query
+2. Calls `compare_all_loan_rates("personal", 25000, 60)`
+3. MCP queries PASHA, Kapital, IBA, Access, Rabite Bank APIs
+4. Returns live rates: PASHA 8.5%, Kapital 9.0%, etc.
+5. AI responds with current data and recommendations
+
+**🤖 Response:** "Based on today's rates, PASHA Bank offers the best personal loan at **8.5% APR** for 25,000 AZN. Your monthly payment would be **472 AZN** over 60 months. Would you like me to find the nearest PASHA branch?"
+
+### **Example 2: Contextual Follow-up**
+**👤 User:** "Yes, find the nearest PASHA branch"
+
+**🤖 AI Process:**
+1. Remembers previous context (PASHA Bank preference)
+2. Gets user location (with permission)
+3. Calls `find_nearest_branches("PASHA", 40.4093, 49.8671, 5)`
+4. Returns live branch data with distances
+
+**🤖 Response:** "The nearest PASHA Bank branch is **PASHA Tower Main** at 2.3km from your location. Address: 153 Heydar Aliyev prospekti. Hours: 09:00-18:00. Phone: +994 12 967 00 00. [Get Directions] [Call Branch]"
+
+## 🔧 Configuration Options
+
+### **MCP Server Configuration**
+```python
+# mcp-servers/bank_server.py
+BANK_APIS = {
+    "PASHA": {
+        "base_url": "https://api.pashabank.az/v1",
+        "api_key": os.getenv("PASHA_BANK_API_KEY"),
+        "endpoints": {
+            "loans": "/loan-rates",
+            "branches": "/branches"
+        }
+    }
+    # Add more banks as APIs become available
+}
 ```
 
-### Database Setup Options
-
-**1. Free Cloud Databases:**
-- **Neon** (Recommended): 500MB free, excellent performance
-- **Supabase**: 500MB free, includes admin interface  
-- **PlanetScale**: 1 database free, MySQL-compatible
-- **Railway**: Free PostgreSQL with $5 monthly credit
-
-**2. Local Development:**
-```bash
-# Using Docker
-docker run --name banking-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
-
-# Using existing PostgreSQL
-createdb banking_assistant
+### **Real-time vs Fallback Mode**
+```python
+# Automatic fallback when bank APIs unavailable
+if mcp_client and mcp_client.is_connected():
+    # Use real-time MCP data
+    result = await mcp.compare_all_loan_rates(...)
+else:
+    # Fallback to database
+    result = await compare_loan_rates_fallback(...)
 ```
 
 ## 🚀 Deployment Options
 
-### Free Hosting Platforms
+### **Free Hosting (Recommended)**
 
-**1. Render (Recommended)**
+**1. Render (Best for MCP)**
 ```bash
 # 1. Connect GitHub to Render
 # 2. Create Web Service
@@ -173,83 +262,47 @@ createdb banking_assistant
 
 **2. Railway**
 ```bash
-# 1. Install Railway CLI: npm install -g @railway/cli
-# 2. railway login
-# 3. railway init
-# 4. railway up
+npm install -g @railway/cli
+railway login
+railway init
+railway up
 ```
 
 **3. Fly.io**
 ```bash
-# 1. Install flyctl: https://fly.io/docs/flyctl/install/
-# 2. fly auth login
-# 3. fly deploy
+fly auth login
+fly deploy
 ```
 
-### Docker Deployment
+### **Docker Deployment**
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+
+# Health check for MCP
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8000/api/health || exit 1
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### **Production Environment Variables**
 ```bash
-# Build image
-docker build -t ai-banking-assistant .
+# Production settings
+ENVIRONMENT=production
+DATABASE_URL=postgresql://prod_user:pass@prod_host:5432/banking_assistant
+GEMINI_API_KEY=prod_gemini_key
 
-# Run with docker-compose
-docker-compose up -d
+# Bank API keys (when available)
+PASHA_BANK_API_KEY=prod_pasha_key
+KAPITAL_BANK_API_KEY=prod_kapital_key
 
-# Access at http://localhost:8000
-```
-
-### Production Setup
-```bash
-# Install production server
-pip install gunicorn
-
-# Run with multiple workers
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
-```
-
-## 🛠️ Development
-
-### Local Development
-```bash
-# Install dev dependencies
-pip install -r requirements.txt
-
-# Run with auto-reload
-uvicorn app.main:app --reload --port 8000
-
-# Run tests
-pytest
-
-# Format code
-black app/ scripts/
-```
-
-### Adding New Features
-
-**1. Add New Template:**
-```html
-<!-- templates/new_page.html -->
-{% extends "base.html" %}
-{% block content %}
-<!-- Your content here -->
-{% endblock %}
-```
-
-**2. Add Route in main.py:**
-```python
-@app.get("/new-page", response_class=HTMLResponse)
-async def new_page(request: Request):
-    return templates.TemplateResponse("new_page.html", {
-        "request": request,
-        "page_title": "New Page"
-    })
-```
-
-**3. Add API Endpoint:**
-```python
-@app.post("/api/new-feature")
-async def new_feature(data: YourModel):
-    # Your logic here
-    return {"result": "success"}
+# Optional: Enhanced features
+REDIS_URL=redis://localhost:6379/0
+SENTRY_DSN=your_sentry_dsn_for_error_tracking
 ```
 
 ## 🔍 API Documentation
@@ -257,182 +310,232 @@ async def new_feature(data: YourModel):
 Once running, visit:
 - **Interactive API Docs**: http://localhost:8000/docs
 - **ReDoc Documentation**: http://localhost:8000/redoc
-- **OpenAPI Schema**: http://localhost:8000/openapi.json
+- **Health Check**: http://localhost:8000/api/health
 
-### Key Endpoints
+### **Enhanced API Endpoints**
 
 ```
-GET  /                     # Home page
-GET  /loans               # Loan comparison page
-GET  /branches            # Branch finder page  
-GET  /chat                # AI chat page
-GET  /currency            # Currency rates page
+GET  /                           # Home page with MCP status
+GET  /loans                      # Loan comparison page
+GET  /branches                   # Branch finder page  
+GET  /chat                       # AI chat with MCP tools
+GET  /currency                   # Currency rates page
 
-POST /api/loans/compare   # Compare loan rates
-POST /api/branches/find   # Find nearest branches
-POST /api/chat           # Chat with AI
-GET  /api/currency/rates # Get exchange rates
+POST /api/loans/compare          # MCP-powered loan comparison
+POST /api/branches/find          # MCP-powered branch finder
+POST /api/chat                   # AI chat with real-time tools
+GET  /api/currency/rates         # Current exchange rates
+GET  /api/health                 # System health + MCP status
 ```
 
-## 📊 Database Schema
-
-### Core Tables
-- `banks` - Bank information
-- `loan_rates` - Interest rates by bank and loan type
-- `branches` - Bank branch locations with coordinates
-- `currency_rates` - Daily exchange rates from CBAR
-- `chat_history` - AI chat conversations
-- `user_queries` - Analytics and usage tracking
-
-### Sample Queries
-```sql
--- Find best personal loan rates
-SELECT b.name, lr.min_rate 
-FROM banks b 
-JOIN loan_rates lr ON b.id = lr.bank_id 
-WHERE lr.loan_type = 'personal' 
-ORDER BY lr.min_rate;
-
--- Find nearest branches to coordinates
-SELECT b.name, br.branch_name, br.address
-FROM banks b
-JOIN branches br ON b.id = br.bank_id
-ORDER BY (latitude - 40.4093)^2 + (longitude - 49.8671)^2;
+### **Health Check Response**
+```json
+{
+  "status": "healthy",
+  "database": "connected",
+  "mcp_client": "connected",
+  "ai_model": "available",
+  "timestamp": "2024-12-19T10:30:00Z",
+  "version": "2.0.0"
+}
 ```
 
-## 🤖 AI Assistant
+## 🧪 Testing Your MCP Implementation
 
-The AI assistant uses Google Gemini API and provides:
+### **1. Test MCP Client**
+```bash
+python -c "
+import asyncio
+from mcp_client import MCPBankingClient
 
-- **Banking Knowledge**: Rates, products, requirements
-- **Contextual Responses**: Uses current data from database
-- **Bilingual Support**: English and Azerbaijani
-- **Tool Integration**: Suggests using loan calculator, branch finder
-- **Real-time Data**: Current rates and bank information
+async def test():
+    client = MCPBankingClient()
+    await client.initialize()
+    
+    # Test loan comparison
+    loans = await client.compare_all_loan_rates('personal', 20000, 60)
+    print('Loan rates:', loans)
+    
+    # Test branch finder
+    branches = await client.find_nearest_branches('PASHA', 40.4093, 49.8671, 3)
+    print('Branches:', branches)
+    
+    await client.close()
 
-### AI Configuration
-```python
-# In app/main.py
-model = genai.GenerativeModel('gemini-pro')
+asyncio.run(test())
+"
+```
 
-# Context includes:
-# - Current bank rates from database
-# - Exchange rates from CBAR
-# - User's language preference
+### **2. Test API Endpoints**
+```bash
+# Test loan comparison with MCP
+curl -X POST "http://localhost:8000/api/loans/compare" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 25000, "loan_type": "personal", "term_months": 60}'
+
+# Test AI chat with MCP tools
+curl -X POST "http://localhost:8000/api/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Show me the best loan rates", "language": "en"}'
+
+# Check system health
+curl http://localhost:8000/api/health
+```
+
+### **3. Monitor MCP Performance**
+```bash
+# Enable debug logging
+export MCP_DEBUG=1
+python main.py
+
+# Watch logs for MCP activity
+tail -f app.log | grep MCP
 ```
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### **Common Issues**
 
-**1. Database Connection Error**
+**1. MCP Client Won't Connect**
 ```bash
-# Check database URL
-echo $DATABASE_URL
+# Check if MCP server is running
+python mcp-banking-assistant/mcp-servers/bank_server.py
 
-# Test connection
-python -c "import asyncpg; print('OK')"
+# Verify environment variables
+echo $DATABASE_URL
+echo $GEMINI_API_KEY
+```
+
+**2. Database Connection Error**
+```bash
+# Test database connection
+python -c "import asyncpg; import asyncio; asyncio.run(asyncpg.connect('$DATABASE_URL'))"
 
 # Reset database
 python scripts/setup.py
 ```
 
-**2. Gemini API Error**
+**3. AI Chat Not Working**
 ```bash
-# Check API key
-echo $GEMINI_API_KEY
-
-# Test API access
+# Verify Gemini API key
 curl -H "x-goog-api-key: $GEMINI_API_KEY" \
   https://generativelanguage.googleapis.com/v1/models
 ```
 
-**3. Static Files Not Loading**
+**4. Bank APIs Returning Errors**
+- Check API keys in environment variables
+- Verify API endpoints are correct
+- Application gracefully falls back to database
+
+### **System Status Indicators**
+
+**Frontend Status Display:**
+- 🟢 **Green**: MCP connected, real-time data
+- 🟡 **Yellow**: MCP fallback, database mode
+- 🔴 **Red**: System offline
+
+**Health Check Details:**
 ```bash
-# Check static files directory
-ls -la static/
-
-# Ensure proper mounting in main.py
-app.mount("/static", StaticFiles(directory="static"), name="static")
+curl http://localhost:8000/api/health | jq
 ```
 
-**4. Template Not Found**
-```bash
-# Check templates directory
-ls -la templates/
+## 🚀 Future Roadmap
 
-# Ensure Jinja2 configuration
-templates = Jinja2Templates(directory="templates")
-```
+### **Phase 1: Core MCP (✅ Complete)**
+- [x] MCP server implementation
+- [x] Real-time loan comparison
+- [x] Dynamic branch finding
+- [x] Intelligent AI integration
 
-### Performance Optimization
+### **Phase 2: Enhanced Banking APIs**
+- [ ] **Real bank API integration** (as APIs become available)
+- [ ] **Credit score checking** via bank partnerships
+- [ ] **Loan pre-approval** through MCP tools
+- [ ] **Account balance** integration (with permission)
 
-**1. Database Indexing**
-```sql
--- Add indexes for better performance
-CREATE INDEX idx_loan_rates_type ON loan_rates(loan_type, min_rate);
-CREATE INDEX idx_branches_location ON branches(latitude, longitude);
-```
+### **Phase 3: Advanced Features**
+- [ ] **Multi-language support** (Russian, Turkish)
+- [ ] **Voice interface** with speech-to-text
+- [ ] **Mobile app** with React Native
+- [ ] **Telegram bot** integration
 
-**2. Caching (Optional)**
-```bash
-# Install Redis
-pip install redis
-
-# Add to .env
-REDIS_URL=redis://localhost:6379/0
-```
-
-**3. Production Settings**
-```bash
-# Use multiple workers
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
-
-# Enable gzip compression
-# Add middleware in main.py
-```
+### **Phase 4: Professional Services**
+- [ ] **Bank partnerships** for direct applications
+- [ ] **Financial planning** tools
+- [ ] **Investment advice** integration
+- [ ] **Insurance comparison**
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
+We welcome contributions! Here's how to get started:
 
-### Development Guidelines
-- Use type hints in Python code
-- Follow PEP 8 style guide
-- Add docstrings to functions
-- Write tests for new features
-- Update documentation
+### **Development Setup**
+```bash
+# Fork the repository
+git clone https://github.com/YOUR_USERNAME/banking_assistant.git
+cd banking_assistant
+
+# Create feature branch
+git checkout -b feature/amazing-mcp-feature
+
+# Install development dependencies
+pip install -r requirements.txt
+pip install pytest black flake8
+
+# Make your changes
+# ...
+
+# Run tests
+pytest tests/
+
+# Format code
+black main.py mcp_client.py
+
+# Commit and push
+git commit -m "Add amazing MCP feature"
+git push origin feature/amazing-mcp-feature
+```
+
+### **Contribution Guidelines**
+- **MCP Tools**: Add new banking tools in `mcp-banking-assistant/tools/`
+- **Bank APIs**: Add new bank integrations in `mcp-servers/`
+- **Frontend**: Enhance templates with real-time indicators
+- **AI**: Improve prompts and tool awareness
+- **Documentation**: Update README for new features
 
 ## 📋 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙋‍♂️ Support
+## 🙋‍♂️ Support & Contact
 
-- **Documentation**: Check this README and inline comments
-- **Issues**: Open GitHub issue for bugs or feature requests
-- **API Documentation**: Visit `/docs` endpoint when running
-- **Database**: Use `python scripts/setup.py` to reset/reload data
+- **GitHub Issues**: [Report bugs or request features](https://github.com/Ismat-Samadov/banking_assistant/issues)
+- **Documentation**: Check `/docs` endpoint when running
+- **API Reference**: Visit `/docs` for interactive API documentation
+- **Health Status**: Monitor via `/api/health` endpoint
 
-## 🎯 Roadmap
+## 🏆 Key Benefits of MCP Version 2.0
 
-- [ ] **Advanced Analytics**: User behavior tracking and insights
-- [ ] **Mobile App**: React Native or Flutter companion app
-- [ ] **Telegram Bot**: Integration with Telegram for wider access
-- [ ] **Voice Interface**: Speech-to-text and text-to-speech
-- [ ] **Real-time Rates**: WebSocket updates for live currency rates
-- [ ] **Advanced AI**: Fine-tuned model for Azerbaijan banking
-- [ ] **Multi-language**: Add Russian and Turkish support
-- [ ] **Bank Integration**: Direct API connections with banks
-- [ ] **Document Processing**: Upload and analyze bank documents
-- [ ] **Comparison Tools**: Insurance, investment products
+### **✅ For Users:**
+- **Real-time data** instead of outdated information
+- **Intelligent responses** from AI with current banking data
+- **Seamless experience** with automatic fallbacks
+- **Contextual assistance** that remembers conversation flow
+
+### **✅ For Developers:**
+- **Modular architecture** easy to extend and maintain
+- **Standard protocols** using MCP for tool integration
+- **Graceful degradation** when external services fail
+- **Professional codebase** ready for production deployment
+
+### **✅ For Banks:**
+- **API integration ready** for partnerships
+- **Secure authentication** handling
+- **Rate limiting** and error handling
+- **Analytics ready** for usage tracking
 
 ---
 
-**Built with ❤️ for Azerbaijan's banking community**
+**🚀 Built with MCP for the future of AI-powered banking in Azerbaijan**
 
-*Free, open-source, and designed to help people make better financial decisions.*
+*This is an open-source project designed to help people make better financial decisions with real-time, AI-powered assistance.*
