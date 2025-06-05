@@ -1,319 +1,38 @@
-# AI Banking Assistant - Enhanced Requirements
-# Version 2.0.0 with Security and Performance Improvements
+# Updated requirements.txt with MCP dependencies
 
-# Core FastAPI and Web Framework
+# Web Framework
 fastapi==0.115.9
 uvicorn[standard]==0.34.3
-starlette==0.45.3
+jinja2==3.1.4
+python-multipart==0.0.20
+
+# Database
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+
+# AI & MCP
+google-generativeai==0.8.3
+mcp==1.0.0
+
+# HTTP & Networking
+aiohttp==3.12.7
+aiofiles==24.1.0
+httpx==0.28.1
+
+# Data Processing
 pydantic==2.11.5
 pydantic-settings==2.9.1
 
-# Template Engine and Static Files
-jinja2==3.1.4
-aiofiles==24.1.0
-
-# Database and Connection Pool
-asyncpg==0.30.0
-psycopg2-binary==2.9.10
-SQLAlchemy==2.0.41
-alembic==1.16.1
-
-# Security and Authentication
-slowapi==0.1.9
-cryptography==44.0.0
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
-bcrypt==4.3.0
-
-# HTTP Client and Networking
-httpx==0.28.1
-aiohttp==3.12.7
-requests==2.32.3
-websockets==15.0.1
-
-# Caching and Performance
-redis[hiredis]==5.2.1
-tenacity==9.1.2
-backoff==2.2.1
-
-# AI and ML
-google-generativeai==0.8.3
-google-ai-generativelanguage==0.6.10
-google-api-core==2.25.0
-google-auth==2.40.2
-
-# MCP (Model Context Protocol)
-mcp==1.0.0
-anthropic==0.44.0
-
-# Data Processing and Serialization
-pandas==2.2.3
-numpy==2.1.2
-orjson==3.10.18
-msgpack==1.1.0
-
-# Logging and Monitoring
-structlog==23.2.0
-coloredlogs==15.0.1
-sentry-sdk[fastapi]==1.40.0
-prometheus-client==0.21.1
-
-# Configuration and Environment
+# Utilities
 python-dotenv==1.1.0
-dynaconf==3.2.6
-click==8.1.8
-
-# Date and Time Handling
 python-dateutil==2.9.0.post0
-pytz==2025.2
+structlog==23.2.0
 
-# Validation and Schema
-jsonschema==4.24.0
-marshmallow==3.26.1
-cerberus==1.3.5
+# Static Files & Templates
+starlette==0.45.3
 
-# File Processing
-openpyxl==3.1.5
-python-multipart==0.0.20
-python-docx==1.1.2
-PyPDF2==3.0.1
-
-# Image Processing (for favicon generation)
-Pillow==11.0.0
-qrcode[pil]==8.0
-
-# Testing and Development
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
-pytest-mock==3.14.0
-httpx[testing]==0.28.1
-faker==33.1.0
-
-# Code Quality and Linting
-black==24.10.0
-isort==5.13.2
-flake8==7.1.1
-mypy==1.14.0
-bandit[toml]==1.8.0
-safety==3.2.11
-
-# Performance Monitoring
-psutil==6.1.1
-memory-profiler==0.61.0
-line-profiler==4.2.0
-
-# Geolocation and Maps
-geopy==2.4.1
-folium==0.18.0
-
-# Internationalization
-babel==2.16.0
-python-i18n==0.3.9
-
-# Data Validation and Cleaning
-email-validator==2.2.0
-phonenumbers==8.13.51
-validators==0.35.0
-
-# Background Tasks and Scheduling
-celery[redis]==5.4.0
-schedule==1.2.2
-apscheduler==3.11.0
-
-# Financial and Currency
-forex-python==1.8
-yfinance==0.2.37
-currency-converter==0.5.6
-
-# Web Scraping (for bank data collection)
-beautifulsoup4==4.12.3
-scrapy==2.12.0
-selenium==4.28.0
-
-# API Documentation
-mkdocs==1.6.1
-mkdocs-material==9.5.45
-mkdocs-swagger-ui-tag==0.6.10
-
-# Development Tools
-pre-commit==4.0.1
-commitizen==3.31.0
-bumpversion==0.6.0
-
-# Deployment and Production
+# Development & Deployment
 gunicorn==21.2.0
-nginx-python-module==1.27.2
-supervisor==4.2.5
 
-# Cloud and Containerization
-docker==7.1.0
-kubernetes==32.0.1
-azure-storage-blob==12.24.0
-boto3==1.35.89
-
-# Backup and Data Export
-xlsxwriter==3.2.0
-reportlab==4.2.5
-python-docx==1.1.2
-
-# Machine Learning (optional enhancements)
-scikit-learn==1.6.1
-tensorflow==2.18.0
-torch==2.7.0
-transformers==4.52.4
-
-# Natural Language Processing
-nltk==3.9.1
-spacy==3.8.2
-textblob==0.18.0
-
-# SMS and Notifications (for alerts)
-twilio==10.3.1
-pushbullet.py==0.12.0
-plyer==2.1.0
-
-# Social Media Integration (future)
-python-telegram-bot==21.9
-discord.py==2.4.0
-
-# Banking APIs (when available)
-plaid-python==18.0.0
-stripe==12.2.0
-paypal-sdk==1.2.0
-
-# Additional Security
-pyotp==2.9.0
-qrcode==8.0
-argon2-cffi==23.1.0
-
-# Performance and Optimization
-uvloop==0.21.0
-httptools==0.6.4
-cchardet==2.1.7
-
-# Monitoring and Alerting
-newrelic==10.2.0
-datadog==0.50.2
-elastic-apm==6.23.0
-
-# Development Dependencies (only install in dev)
-# Uncomment for development:
-# jupyter==1.1.1
-# ipython==8.30.0
-# notebook==7.3.1
-# matplotlib==3.10.0
-# seaborn==0.13.2
-
-# Optional: AI Voice Processing
-# speech-recognition==3.14.3
-# pyttsx3==2.99
-# gtts==2.5.4
-
-# Optional: Advanced Analytics
-# plotly==5.24.1
-# dash==2.18.2
-# streamlit==1.45.1
-
-# Production WSGI/ASGI Servers
-daphne==4.1.2
-hypercorn==0.17.3
-
-# SSL and Security Certificates
-certbot==3.1.0
-acme==3.1.0
-
-# Database Migration and Management
-yoyo-migrations==8.2.0
-sqlalchemy-utils==0.41.2
-
-# API Rate Limiting and Throttling
-limits==3.14.0
-flask-limiter==3.8.0  # For reference if switching to Flask
-
-# Load Testing (development)
-locust==2.33.1
-artillery==0.2.0
-
-# Documentation Generation
-sphinx==8.1.3
-sphinx-rtd-theme==3.0.2
-
-# Environment and Secrets Management
-python-decouple==3.8
-keyring==25.5.0
-cryptography==44.0.0
-
-# Git and Version Control
-gitpython==3.1.44
-pre-commit-hooks==5.0.0
-
-# Health Checks and Service Discovery
-consul==1.1.0
-etcd3==0.12.0
-
-# Message Queues (alternative to Celery)
-pika==1.3.2  # RabbitMQ
-kafka-python==2.0.2
-
-# Time Series Data (for analytics)
-influxdb==5.3.2
-prometheus-client==0.21.1
-
-# Configuration Management
-ansible==11.1.0  # For deployment automation
-terraform==1.0.3  # For infrastructure
-
-# Container and Orchestration
-docker-compose==1.29.2
-kubernetes==32.0.1
-
-# Backup and Recovery
-duplicity==2.2.3
-rclone==1.68.2
-
-# Additional Utilities
-click-plugins==1.1.1
-colorama==0.4.6
-tqdm==4.67.1
-rich==14.0.0
-
-# Financial Data APIs
-alpha-vantage==2.3.1
-quandl==3.7.0
-financialmodelingprep==0.1.8
-
-# Social Authentication (future enhancement)
-python-social-auth==0.3.6
-authlib==1.3.2
-oauth2lib==0.11.0
-
-# Advanced Caching
-pymemcache==4.0.0
-diskcache==5.6.3
-
-# Geographic and Location Services
-geoip2==4.8.0
-maxminddb==2.6.2
-
-# Advanced Logging
-python-json-logger==3.2.1
-loguru==0.7.3
-
-# File Compression and Archives
-py7zr==0.22.0
-zipfile36==0.1.3
-
-# Network and Protocol Support
-paramiko==3.5.0  # SSH
-ftputil==5.1.0   # FTP
-
-# Development and Debugging
-ipdb==0.13.13
-pdb-attach==3.2.0
-py-spy==0.4.0
-
-# Final Development Tools
-coverage==7.6.9
-codecov==2.1.13
-vulture==2.13  # Dead code finder
+# Optional: For enhanced error handling
+sentry-sdk[fastapi]==1.40.0
