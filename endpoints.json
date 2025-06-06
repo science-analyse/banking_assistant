@@ -41,6 +41,12 @@
             "company": "azn.az",
             "description": "Provides currency information and exchange rates for different banks in Azerbaijan.",
             "url": "https://www.azn.az/data/data.json"
+        },
+        {
+            "name": "All bank currency rates",
+            "company": "valyuta.com",
+            "description": "Provides exchange rates for all banks in Azerbaijan.",
+            "url": "https://www.valyuta.com/api/all-bank-rates"
         }
     ]
 }
