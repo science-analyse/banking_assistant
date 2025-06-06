@@ -1,38 +1,23 @@
+# Essential packages for Kapital Bank AI Assistant
+
 # Web Framework
 fastapi==0.115.9
 uvicorn[standard]==0.34.3
 jinja2==3.1.4
 python-multipart==0.0.20
 
-# Database
-asyncpg==0.30.0
-psycopg2-binary==2.9.10
-
-# AI & MCP
+# AI Service
 google-generativeai==0.8.3
-mcp==1.0.0
 
 # HTTP & Networking
 aiohttp==3.12.7
 aiofiles==24.1.0
-httpx==0.28.1
 
 # Data Processing
 pydantic==2.11.5
-pydantic-settings==2.9.1
 
-# Utilities
-python-dotenv==1.1.0
-python-dateutil==2.9.0.post0
-structlog==23.2.0
-
-# Static Files & Templates
+# Templates & Static Files
 starlette==0.45.3
 
-# Development & Deployment
+# Production Server
 gunicorn==21.2.0
-
-# Optional: For enhanced error handling
-slowapi
-redis
-tenacity

@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}AI Chat - Kapital Bank AI Assistant{% endblock %}
+{% block page_name %}chat{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="chat-container">
+                <!-- Chat Header -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="chat-avatar me-3">
+                                    <i class="bi bi-robot display-6"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">🤖 Kapital Bank AI Assistant</h5>
+                                    <small class="opacity-75">
+                                        <span class="status-indicator online"></span>
+                                        Online and ready to help
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="chat-controls">
+                                <button class="btn btn-outline-light btn-sm" onclick="clearChat()" title="Clear chat">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#helpModal" title="Help">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Messages -->
+                    <div class="card-body p-0">
+                        <div id="chatMessages" class="chat-messages">
+                            <!-- Welcome Message -->
+                            <div class="chat-message assistant fade-in">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <strong>AI Assistant</strong>
+                                    <small class="opacity-75" id="welcomeTime"></small>
+                                </div>
+                                <div>
+                                    👋 Welcome to Kapital Bank AI Assistant! I can help you with:
+                                    <ul class="mt-2 mb-0">
+                                        <li>🏛️ Finding bank branches and ATMs</li>
+                                        <li>💱 Currency exchange rates and conversions</li>
+                                        <li>🗺️ Directions to banking services</li>
+                                        <li>📞 Contact information and working hours</li>
+                                    </ul>
+                                    <p class="mt-2 mb-0">What can I help you with today?</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Suggestions -->
+                    <div class="card-body border-top" id="suggestions">
+                        <div class="d-flex flex-wrap gap-2">
+                            <small class="text-muted w-100 mb-2">💡 Try asking:</small>
+                            <button class="btn btn-outline-primary btn-sm" onclick="ChatSystem.sendSuggestion('Find nearest ATM')">
+                                "Find nearest ATM"
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="ChatSystem.sendSuggestion('What is USD rate today?')">
+                                "What is USD rate today?"
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="ChatSystem.sendSuggestion('Show me branch locations in Baku')">
+                                "Show me branch locations in Baku"
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="ChatSystem.sendSuggestion('Convert 1000 USD to AZN')">
+                                "Convert 1000 USD to AZN"
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="card-footer">
+                        <form id="chatForm" class="d-flex gap-2">
+                            <input type="text" id="messageInput" class="form-control" 
+                                   placeholder="Type your message here..." 
+                                   autocomplete="off" required>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </form>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Press Enter to send, Shift+Enter for new line
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Sidebar -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="chat-sidebar">
+                <!-- Quick Actions -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-lightning me-2"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="sendQuickQuestion('Find nearest branch')">
+                                <i class="bi bi-bank me-2"></i>Find Nearest Branch
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="sendQuickQuestion('Show me ATM locations')">
+                                <i class="bi bi-credit-card me-2"></i>Find ATMs
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="sendQuickQuestion('Current USD exchange rate')">
+                                <i class="bi bi-currency-dollar me-2"></i>USD Rate
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="sendQuickQuestion('Convert 500 EUR to AZN')">
+                                <i class="bi bi-calculator me-2"></i>Currency Convert
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="sendQuickQuestion('Kapital Bank working hours')">
+                                <i class="bi bi-clock me-2"></i>Working Hours
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Location Status -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-geo-alt me-2"></i>Your Location
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="locationStatus" class="text-center py-2">
+                            <i class="bi bi-geo-alt-fill text-primary"></i>
+                            <div class="mt-2">
+                                <div class="fw-bold">Baku, Azerbaijan</div>
+                                <small class="text-muted">Default location</small>
+                            </div>
+                        </div>
+                        <button id="updateLocationBtn" class="btn btn-outline-secondary btn-sm w-100 mt-2">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Update Location
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Chat Features -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-gear me-2"></i>Chat Features
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="feature-item mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-translate text-primary me-2"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">Language</div>
+                                    <small class="text-muted">English & Azerbaijani</small>
+                                </div>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo text-primary me-2"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">Location Services</div>
+                                    <small class="text-muted">Find nearby services</small>
+                                </div>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-shield-check text-primary me-2"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">Secure Chat</div>
+                                    <small class="text-muted">Private & secure</small>
+                                </div>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-question-circle me-2"></i>How to Use AI Chat
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>🏛️ Banking Services</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <code>"Find nearest ATM"</code><br>
+                                <small class="text-muted">Locate ATMs near your location</small>
+                            </li>
+                            <li class="mb-2">
+                                <code>"Show me branches in Baku"</code><br>
+                                <small class="text-muted">List all branches in a city</small>
+                            </li>
+                            <li class="mb-2">
+                                <code>"Working hours for branches"</code><br>
+                                <small class="text-muted">Check operating hours</small>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>💱 Currency Services</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <code>"USD rate today"</code><br>
+                                <small class="text-muted">Get current exchange rates</small>
+                            </li>
+                            <li class="mb-2">
+                                <code>"Convert 1000 EUR to AZN"</code><br>
+                                <small class="text-muted">Currency conversion</small>
+                            </li>
+                            <li class="mb-2">
+                                <code>"Best exchange rate for USD"</code><br>
+                                <small class="text-muted">Compare market rates</small>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>💡 Tips for Better Results</h6>
+                <ul>
+                    <li>Be specific about locations (e.g., "near Fountain Square")</li>
+                    <li>Include amounts for currency conversions</li>
+                    <li>Ask follow-up questions for more details</li>
+                    <li>Use natural language - I understand context!</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Privacy:</strong> Your conversations are not stored permanently. 
+                    Location data is only used to provide relevant nearby services.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="sendQuickQuestion('Show me an example')">
+                    Try Example
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set welcome message time
+    document.getElementById('welcomeTime').textContent = new Date().toLocaleTimeString();
+    
+    // Check for quick question from home page
+    const quickQuestion = sessionStorage.getItem('quickQuestion');
+    if (quickQuestion) {
+        document.getElementById('messageInput').value = quickQuestion;
+        sessionStorage.removeItem('quickQuestion');
+        // Auto-send after a brief delay
+        setTimeout(() => {
+            document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+        }, 1000);
+    }
+    
+    // Update location status
+    LocationService.getCurrentLocation().then(location => {
+        document.getElementById('locationStatus').innerHTML = `
+            <i class="bi bi-geo-alt-fill text-success"></i>
+            <div class="mt-2">
+                <div class="fw-bold">Location Found</div>
+                <small class="text-muted">${location[0].toFixed(4)}, ${location[1].toFixed(4)}</small>
+            </div>
+        `;
+    }).catch(() => {
+        document.getElementById('locationStatus').innerHTML = `
+            <i class="bi bi-geo-alt text-warning"></i>
+            <div class="mt-2">
+                <div class="fw-bold">Baku, Azerbaijan</div>
+                <small class="text-muted">Default location</small>
+            </div>
+        `;
+    });
+    
+    // Update location button
+    document.getElementById('updateLocationBtn').addEventListener('click', async function() {
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise spinner-border spinner-border-sm me-1"></i>Getting location...';
+        
+        try {
+            const location = await LocationService.getCurrentLocation();
+            document.getElementById('locationStatus').innerHTML = `
+                <i class="bi bi-geo-alt-fill text-success"></i>
+                <div class="mt-2">
+                    <div class="fw-bold">Location Updated</div>
+                    <small class="text-muted">${location[0].toFixed(4)}, ${location[1].toFixed(4)}</small>
+                </div>
+            `;
+            Utils.showAlert('success', 'Location updated successfully');
+        } catch (error) {
+            Utils.showAlert('error', 'Failed to get location');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    });
+    
+    // Focus on input
+    document.getElementById('messageInput').focus();
+});
+
+// Send quick question function
+function sendQuickQuestion(question) {
+    document.getElementById('messageInput').value = question;
+    document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+}
+
+// Auto-resize chat input
+document.getElementById('messageInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + / to focus chat input
+    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        document.getElementById('messageInput').focus();
+    }
+    
+    // Escape to clear input
+    if (e.key === 'Escape') {
+        document.getElementById('messageInput').value = '';
+        document.getElementById('messageInput').blur();
+    }
+});
+
+// Add typing sound effect (optional)
+function playTypingSound() {
+    // Create a subtle typing sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+// Add message delivery confirmation
+function showMessageStatus(status) {
+    const statusEl = document.createElement('small');
+    statusEl.className = 'text-muted ms-2';
+    statusEl.innerHTML = status === 'sent' ? '<i class="bi bi-check"></i>' : 
+                        status === 'delivered' ? '<i class="bi bi-check2-all text-primary"></i>' :
+                        '<i class="bi bi-exclamation-triangle text-warning"></i>';
+    return statusEl;
+}
+</script>
+{% endblock %}

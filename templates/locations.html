@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Find Locations - Kapital Bank AI Assistant{% endblock %}
+{% block page_name %}locations{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Search Panel -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="search-panel">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-search me-2"></i>Find Services
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="locationSearchForm">
+                            <div class="mb-3">
+                                <label class="form-label">Service Type</label>
+                                <select class="form-select" name="serviceType" id="serviceType" required>
+                                    <option value="branch">🏛️ Bank Branches</option>
+                                    <option value="atm">🏧 ATMs</option>
+                                    <option value="cash_in">💰 Cash-In Machines</option>
+                                    <option value="digital_center">💻 Digital Centers</option>
+                                    <option value="payment_terminal">💳 Payment Terminals</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Search Radius</label>
+                                <select class="form-select" name="searchRadius" id="searchRadius">
+                                    <option value="1">1 km</option>
+                                    <option value="2">2 km</option>
+                                    <option value="5" selected>5 km</option>
+                                    <option value="10">10 km</option>
+                                    <option value="20">20 km</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100 mb-3">
+                                <i class="bi bi-search me-2"></i>Search
+                            </button>
+                        </form>
+                        
+                        <div class="quick-search">
+                            <h6 class="text-muted mb-3">Quick Search</h6>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm" data-service-type="branch">
+                                    <i class="bi bi-bank me-2"></i>Nearest Branch
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" data-service-type="atm">
+                                    <i class="bi bi-credit-card me-2"></i>Nearest ATM
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" data-service-type="cash_in">
+                                    <i class="bi bi-cash-coin me-2"></i>Cash Deposit
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="location-info">
+                            <h6 class="text-muted mb-2">Your Location</h6>
+                            <div id="userLocationDisplay" class="small text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>Getting location...
+                            </div>
+                            <button id="updateLocationBtn" class="btn btn-outline-secondary btn-sm mt-2 w-100">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Update Location
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map and Results -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="map-results-container">
+                <!-- Map -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-map me-2"></i>Interactive Map
+                        </h6>
+                        <div class="map-controls">
+                            <button id="centerMapBtn" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-crosshair"></i>
+                            </button>
+                            <button id="fullscreenMapBtn" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="map" style="height: 400px; width: 100%;"></div>
+                    </div>
+                </div>
+                
+                <!-- Search Results -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>Search Results
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="searchResults">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-search display-1 opacity-25"></i>
+                                <h5 class="mt-3">Ready to Search</h5>
+                                <p>Select a service type and click search to find nearby locations.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Location Details Modal -->
+<div class="modal fade" id="locationDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Location Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="locationDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="getDirectionsBtn">
+                    <i class="bi bi-navigation me-1"></i>Get Directions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there's a service type from home page
+    const searchServiceType = sessionStorage.getItem('searchServiceType');
+    if (searchServiceType) {
+        document.getElementById('serviceType').value = searchServiceType;
+        sessionStorage.removeItem('searchServiceType');
+        // Auto-search
+        setTimeout(() => {
+            PageHandlers.searchServices(searchServiceType);
+        }, 1000);
+    }
+    
+    // Update location display
+    LocationService.getCurrentLocation().then(location => {
+        document.getElementById('userLocationDisplay').innerHTML = 
+            `<i class="bi bi-geo-alt-fill text-success me-1"></i>Location found`;
+    }).catch(() => {
+        document.getElementById('userLocationDisplay').innerHTML = 
+            `<i class="bi bi-geo-alt text-warning me-1"></i>Using default location (Baku)`;
+    });
+    
+    // Update location button
+    document.getElementById('updateLocationBtn').addEventListener('click', async function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-arrow-clockwise spinner-grow spinner-grow-sm me-1"></i>Getting location...';
+        
+        try {
+            await LocationService.getCurrentLocation();
+            this.innerHTML = '<i class="bi bi-check me-1"></i>Location updated';
+            document.getElementById('userLocationDisplay').innerHTML = 
+                `<i class="bi bi-geo-alt-fill text-success me-1"></i>Location updated`;
+        } catch (error) {
+            this.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Failed to get location';
+        } finally {
+            this.disabled = false;
+            setTimeout(() => {
+                this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Update Location';
+            }, 2000);
+        }
+    });
+    
+    // Center map button
+    document.getElementById('centerMapBtn').addEventListener('click', function() {
+        if (KapitalBankApp.state.map && KapitalBankApp.state.currentLocation) {
+            KapitalBankApp.state.map.setView(KapitalBankApp.state.currentLocation, 12);
+        }
+    });
+    
+    // Fullscreen map button
+    document.getElementById('fullscreenMapBtn').addEventListener('click', function() {
+        const mapCard = document.querySelector('#map').closest('.card');
+        mapCard.classList.toggle('fullscreen-map');
+        
+        // Update icon
+        const icon = this.querySelector('i');
+        if (mapCard.classList.contains('fullscreen-map')) {
+            icon.className = 'bi bi-fullscreen-exit';
+        } else {
+            icon.className = 'bi bi-arrows-fullscreen';
+        }
+        
+        // Invalidate map size after transition
+        setTimeout(() => {
+            if (KapitalBankApp.state.map) {
+                KapitalBankApp.state.map.invalidateSize();
+            }
+        }, 300);
+    });
+});
+
+// Show location details in modal
+window.showLocationDetails = function(locationId) {
+    const modal = new bootstrap.Modal(document.getElementById('locationDetailsModal'));
+    const content = document.getElementById('locationDetailsContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2">Loading details...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Here you would fetch detailed location info
+    // For now, show placeholder
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Contact Information</h6>
+                    <p><i class="bi bi-telephone me-2"></i>+994 12 409 00 00</p>
+                    <p><i class="bi bi-envelope me-2"></i>info@kapitalbank.az</p>
+                    <p><i class="bi bi-globe me-2"></i>www.kapitalbank.az</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Working Hours</h6>
+                    <p><strong>Mon-Fri:</strong> 09:00 - 18:00</p>
+                    <p><strong>Saturday:</strong> 09:00 - 15:00</p>
+                    <p><strong>Sunday:</strong> Closed</p>
+                </div>
+            </div>
+            <hr>
+            <h6>Available Services</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Cash withdrawal</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Deposits</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Account opening</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Currency exchange</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Loans</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Transfers</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }, 1000);
+};
+</script>
+{% endblock %}

@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}Currency Rates - Kapital Bank AI Assistant{% endblock %}
+{% block page_name %}currency{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold mb-1">💱 Currency Exchange Rates</h2>
+                    <p class="text-muted mb-0">Live rates from Central Bank of Azerbaijan</p>
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted">Last updated:</div>
+                    <div class="fw-bold" id="lastUpdateTime">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Currency Converter -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calculator me-2"></i>Currency Converter
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="currencyConverter">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Amount</label>
+                                <input type="number" class="form-control form-control-lg" id="amount" 
+                                       placeholder="1000" value="1000" min="0" step="0.01">
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">From</label>
+                                <select class="form-select form-select-lg" id="fromCurrency">
+                                    <option value="AZN">🇦🇿 AZN - Azerbaijani Manat</option>
+                                    <option value="USD" selected>🇺🇸 USD - US Dollar</option>
+                                    <option value="EUR">🇪🇺 EUR - Euro</option>
+                                    <option value="RUB">🇷🇺 RUB - Russian Ruble</option>
+                                    <option value="TRY">🇹🇷 TRY - Turkish Lira</option>
+                                    <option value="GBP">🇬🇧 GBP - British Pound</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-1 text-center">
+                                <button type="button" class="btn btn-outline-secondary" onclick="swapCurrencies()" title="Swap currencies">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">To</label>
+                                <select class="form-select form-select-lg" id="toCurrency">
+                                    <option value="AZN" selected>🇦🇿 AZN - Azerbaijani Manat</option>
+                                    <option value="USD">🇺🇸 USD - US Dollar</option>
+                                    <option value="EUR">🇪🇺 EUR - Euro</option>
+                                    <option value="RUB">🇷🇺 RUB - Russian Ruble</option>
+                                    <option value="TRY">🇹🇷 TRY - Turkish Lira</option>
+                                    <option value="GBP">🇬🇧 GBP - British Pound</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <input type="text" class="form-control form-control-lg bg-light" 
+                                       id="convertedAmount" placeholder="Result" readonly>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div id="conversionResult" class="mt-3">
+                        <!-- Conversion details will appear here -->
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-3">Quick Convert</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickConvert(100, 'USD', 'AZN')">
+                                $100 → AZN
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickConvert(1000, 'AZN', 'USD')">
+                                1000 AZN → USD
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickConvert(500, 'EUR', 'AZN')">
+                                €500 → AZN
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickConvert(1000, 'RUB', 'AZN')">
+                                1000 RUB → AZN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Official Rates -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bank me-2"></i>Official Rates (CBAR)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="officialRates">
+                        {% if currency_rates and currency_rates.rates %}
+                        <div class="row g-3">
+                            {% for currency, rate in currency_rates.rates.items() %}
+                            <div class="col-md-6 col-lg-4 col-xl-3">
+                                <div class="currency-rate-card" data-currency="{{ currency }}">
+                                    <div class="d-flex align-items-center">
+                                        <div class="currency-flag me-3">
+                                            {% if currency == 'USD' %}🇺🇸
+                                            {% elif currency == 'EUR' %}🇪🇺
+                                            {% elif currency == 'RUB' %}🇷🇺
+                                            {% elif currency == 'TRY' %}🇹🇷
+                                            {% elif currency == 'GBP' %}🇬🇧
+                                            {% else %}💱
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold">{{ currency }}</div>
+                                            <div class="currency-rate h5 text-primary mb-0">{{ "%.4f"|format(rate) }}</div>
+                                            <small class="text-muted">AZN</small>
+                                        </div>
+                                        <div class="rate-change">
+                                            <small class="text-success">+0.01%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary mb-3"></div>
+                            <p class="text-muted">Loading currency rates...</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Market Rates Comparison -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>Market Rates Comparison
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" id="refreshMarketRates">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Compare Currency:</label>
+                        <select class="form-select w-auto d-inline-block" id="compareCurrency">
+                            <option value="USD" selected>USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="RUB">RUB - Russian Ruble</option>
+                            <option value="TRY">TRY - Turkish Lira</option>
+                            <option value="GBP">GBP - British Pound</option>
+                        </select>
+                    </div>
+                    
+                    <div id="marketComparison">
+                        <div class="text-center py-4">
+                            <p class="text-muted">Select a currency to compare market rates</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Currency News/Tips -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>Exchange Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Compare rates before exchanging large amounts
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Banks usually offer better rates than exchange offices
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Avoid exchanging at airports if possible
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Check for hidden fees and commissions
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Rate Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        <strong>Official rates</strong> are set by the Central Bank of Azerbaijan (CBAR) 
+                        and updated daily. These are reference rates used for accounting and official purposes.
+                    </p>
+                    <p class="small text-muted mb-3">
+                        <strong>Market rates</strong> are actual exchange rates offered by banks and 
+                        exchange offices. They may differ from official rates.
+                    </p>
+                    <div class="d-flex gap-2">
+                        <a href="https://www.cbar.az" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-globe me-1"></i>CBAR
+                        </a>
+                        <a href="/chat" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-chat-dots me-1"></i>Ask AI
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-convert on page load
+    PageHandlers.autoConvert();
+    
+    // Load market comparison for USD by default
+    loadMarketComparison('USD');
+    
+    // Update last update time
+    updateLastUpdateTime();
+    
+    // Compare currency change handler
+    document.getElementById('compareurrency').addEventListener('change', function() {
+        loadMarketComparison(this.value);
+    });
+    
+    // Refresh market rates button
+    document.getElementById('refreshMarketRates').addEventListener('click', async function() {
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise spinner-border spinner-border-sm me-1"></i>Refreshing...';
+        
+        try {
+            await PageHandlers.refreshCurrencyRates();
+            const currency = document.getElementById('compareurrency').value;
+            await loadMarketComparison(currency);
+            Utils.showAlert('success', 'Rates refreshed successfully');
+        } catch (error) {
+            Utils.showAlert('error', 'Failed to refresh rates');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    });
+});
+
+async function loadMarketComparison(currency) {
+    const container = document.getElementById('marketComparison');
+    
+    container.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary spinner-border-sm"></div>
+            <span class="ms-2">Loading ${currency} comparison...</span>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch('/api/currency/compare', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                currency: currency,
+                amount: 1000
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    ${data.error}
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="comparison-item">
+                        <div class="fw-bold text-primary">Official Rate (CBAR)</div>
+                        <div class="h4 mb-0">${data.official_rate.toFixed(4)} AZN</div>
+                        <small class="text-muted">per 1 ${currency}</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="comparison-item">
+                        <div class="fw-bold text-success">Best Market Rate</div>
+                        <div class="h4 mb-0">${data.best_rate.rate.toFixed(4)} AZN</div>
+                        <small class="text-muted">at ${data.best_rate.bank}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (data.market_rates && Object.keys(data.market_rates).length > 0) {
+            html += `
+                <h6 class="mb-3">Bank Rates for ${currency}</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Bank</th>
+                                <th>Buy Rate</th>
+                                <th>Sell Rate</th>
+                                <th>Difference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            for (const [bank, rates] of Object.entries(data.market_rates)) {
+                const diff = ((rates.rate - data.official_rate) / data.official_rate * 100).toFixed(2);
+                const diffClass = diff > 0 ? 'text-success' : 'text-danger';
+                
+                html += `
+                    <tr>
+                        <td class="fw-bold">${bank}</td>
+                        <td>${rates.buy.toFixed(4)}</td>
+                        <td>${rates.sell.toFixed(4)}</td>
+                        <td class="${diffClass}">${diff > 0 ? '+' : ''}${diff}%</td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        if (data.savings > 0) {
+            html += `
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    For 1000 ${currency}, you could save up to <strong>${data.savings.toFixed(2)} AZN</strong> 
+                    by choosing the best market rate over the official rate.
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading market comparison:', error);
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Failed to load market comparison. Please try again.
+            </div>
+        `;
+    }
+}
+
+function updateLastUpdateTime() {
+    const timeElement = document.getElementById('lastUpdateTime');
+    if (timeElement) {
+        timeElement.textContent = new Date().toLocaleString();
+    }
+}
+
+// Auto-refresh rates every 5 minutes
+setInterval(async function() {
+    try {
+        await PageHandlers.refreshCurrencyRates();
+        updateLastUpdateTime();
+        
+        // Refresh market comparison if visible
+        const compareurrency = document.getElementById('compareurrency');
+        if (compareurrency) {
+            await loadMarketComparison(compareurrency.value);
+        }
+    } catch (error) {
+        console.log('Auto-refresh failed:', error);
+    }
+}, 300000); // 5 minutes
+</script>
+{% endblock %}
