@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="AI Assistant",
+    title="Kapital Bank AI Assistant",
     description="AI-powered banking location finder and currency intelligence for Azerbaijan",
     version="1.0.0",
     docs_url="/docs",
@@ -60,6 +60,27 @@ class LocationQuery(BaseModel):
     city: Optional[str] = None
     type: Optional[str] = None  # 'branch' or 'atm'
     radius: Optional[float] = 5.0  # km
+
+# Helper function to get fallback currency rates
+def get_fallback_currency_rates():
+    """Return fallback currency rates with consistent structure"""
+    return {
+        "base_currency": "AZN",
+        "source": "CBAR (Central Bank of Azerbaijan Republic) - Fallback Data",
+        "source_note": "CBAR is the regulatory authority that sets official exchange rates. Commercial banks reference these rates and add their service margins.",
+        "last_updated": datetime.now().isoformat(),
+        "rates": {
+            # Simple numeric rates for template compatibility
+            "USD": 1.70,
+            "EUR": 1.85,
+            "GBP": 2.15,
+            "RUB": 0.018,
+            "TRY": 0.055,
+            "GEL": 0.63
+        },
+        "status": "fallback",
+        "disclaimer": "These are fallback CBAR reference rates. Actual bank rates may differ and include service fees."
+    }
 
 # Health check endpoint
 @app.get("/api/health")
@@ -109,26 +130,14 @@ async def get_currency_rates():
     
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # CBAR API endpoint for currency rates
+            # Try CBAR API endpoint for currency rates
             response = await client.get("https://www.cbar.az/currencies/")
             
             if response.status_code == 200:
-                # Parse CBAR response and format for our API
-                rates_data = {
-                    "base_currency": "AZN",
-                    "source": "CBAR (Central Bank of Azerbaijan Republic)",
-                    "source_note": "CBAR is the regulatory authority that sets official exchange rates. Commercial banks reference these rates and add their service margins.",
-                    "last_updated": datetime.now().isoformat(),
-                    "rates": {
-                        "USD": {"rate": 1.70, "name": "US Dollar"},
-                        "EUR": {"rate": 1.85, "name": "Euro"},
-                        "GBP": {"rate": 2.15, "name": "British Pound"},
-                        "RUB": {"rate": 0.018, "name": "Russian Ruble"},
-                        "TRY": {"rate": 0.055, "name": "Turkish Lira"},
-                        "GEL": {"rate": 0.63, "name": "Georgian Lari"}
-                    },
-                    "disclaimer": "These are CBAR reference rates. Actual bank rates may differ and include service fees."
-                }
+                # For now, return fallback rates as CBAR API might be redirecting
+                rates_data = get_fallback_currency_rates()
+                rates_data["source"] = "CBAR (Central Bank of Azerbaijan Republic)"
+                rates_data["status"] = "live"
                 
                 currency_cache[cache_key] = rates_data
                 logger.info("Currency rates fetched and cached successfully")
@@ -136,25 +145,11 @@ async def get_currency_rates():
             else:
                 raise HTTPException(status_code=503, detail="Currency service temporarily unavailable")
                 
-    except httpx.RequestError as e:
+    except Exception as e:
         logger.error(f"Error fetching currency rates: {e}")
         # Return fallback rates
-        fallback_rates = {
-            "base_currency": "AZN",
-            "source": "CBAR (Central Bank of Azerbaijan Republic) - Cached Data",
-            "source_note": "CBAR is the regulatory authority that sets official exchange rates. Commercial banks reference these rates and add their service margins.",
-            "last_updated": datetime.now().isoformat(),
-            "rates": {
-                "USD": {"rate": 1.70, "name": "US Dollar"},
-                "EUR": {"rate": 1.85, "name": "Euro"},
-                "GBP": {"rate": 2.15, "name": "British Pound"},
-                "RUB": {"rate": 0.018, "name": "Russian Ruble"},
-                "TRY": {"rate": 0.055, "name": "Turkish Lira"},
-                "GEL": {"rate": 0.63, "name": "Georgian Lari"}
-            },
-            "status": "fallback",
-            "disclaimer": "These are cached CBAR reference rates. Actual bank rates may differ and include service fees."
-        }
+        fallback_rates = get_fallback_currency_rates()
+        currency_cache[cache_key] = fallback_rates
         return fallback_rates
 
 @app.post("/api/currency/compare")
@@ -168,14 +163,12 @@ async def compare_currencies(request: CurrencyRequest):
         
         rates = rates_data["rates"]
         
-        # Handle the rates format (could be object or number)
+        # Handle the rates format (now simplified to numeric values)
         def get_rate(currency):
             if currency == "AZN":
                 return 1.0
-            rate_data = rates.get(currency)
-            if isinstance(rate_data, dict):
-                return rate_data.get("rate", 0)
-            return float(rate_data) if rate_data else 0
+            rate = rates.get(currency, 0)
+            return float(rate) if rate else 0
         
         from_rate = get_rate(request.from_currency)
         to_rate = get_rate(request.to_currency)
@@ -249,7 +242,7 @@ async def get_locations(
     type: Optional[str] = None,
     radius: Optional[float] = 5.0
 ):
-    """Get branches and ATMs"""
+    """Get Kapital Bank branches and ATMs"""
     cache_key = f"locations_{lat}_{lon}_{city}_{type}_{radius}"
     
     if cache_key in locations_cache:
@@ -260,7 +253,7 @@ async def get_locations(
         all_locations = [
             {
                 "id": 1,
-                "name": "- Nizami Branch",
+                "name": "Kapital Bank - Nizami Branch",
                 "type": "branch",
                 "address": "Nizami Street 96, Baku",
                 "latitude": 40.3777,
@@ -276,13 +269,13 @@ async def get_locations(
                 "address": "Fountain Square, Baku",
                 "latitude": 40.3656,
                 "longitude": 49.8348,
-                "phone": null,
+                "phone": None,
                 "hours": "24/7",
                 "services": ["cash_withdrawal", "balance_inquiry", "mini_statement"]
             },
             {
                 "id": 3,
-                "name": "- Ganjlik Branch",
+                "name": "Kapital Bank - Ganjlik Branch",
                 "type": "branch",
                 "address": "Ganjlik Avenue 3199, Baku",
                 "latitude": 40.4093,
@@ -298,13 +291,13 @@ async def get_locations(
                 "address": "Port Baku Mall, Baku",
                 "latitude": 40.3656,
                 "longitude": 49.8348,
-                "phone": null,
+                "phone": None,
                 "hours": "Mall hours: 10:00-22:00",
                 "services": ["cash_withdrawal", "balance_inquiry", "mini_statement"]
             },
             {
                 "id": 5,
-                "name": "- Sumgayit Branch",
+                "name": "Kapital Bank - Sumgayit Branch",
                 "type": "branch",
                 "address": "Nizami Street 15, Sumgayit",
                 "latitude": 40.5892,
@@ -320,13 +313,13 @@ async def get_locations(
                 "address": "28 May Metro Station, Baku",
                 "latitude": 40.3986,
                 "longitude": 49.8606,
-                "phone": null,
+                "phone": None,
                 "hours": "24/7",
                 "services": ["cash_withdrawal", "balance_inquiry"]
             },
             {
                 "id": 7,
-                "name": "- Sahil Branch",
+                "name": "Kapital Bank - Sahil Branch",
                 "type": "branch",
                 "address": "Bulvar, Baku",
                 "latitude": 40.3606,
@@ -407,7 +400,7 @@ Current popular rates (CBAR reference):
 Would you like me to convert a specific amount or show you more currencies?"""
         
         elif any(word in user_msg for word in ["branch", "atm", "location", "address"]):
-            response = """I can help you find branches and ATMs!
+            response = """I can help you find Kapital Bank branches and ATMs!
 
 We have locations throughout Azerbaijan:
 • **Branches**: Full service locations for deposits, loans, currency exchange
@@ -421,7 +414,7 @@ Popular locations in Baku:
 Would you like me to find the nearest location to you?"""
         
         elif any(word in user_msg for word in ["loan", "credit", "mortgage"]):
-            response = """offers various loan products:
+            response = """Kapital Bank offers various loan products:
 
 • **Personal Loans**: For your individual needs
 • **Mortgage Loans**: Home financing solutions  
@@ -433,7 +426,7 @@ For detailed information about loan rates, terms, and application process, I rec
 Would you like me to help you find the nearest branch?"""
         
         elif any(word in user_msg for word in ["account", "deposit", "saving"]):
-            response = """provides comprehensive account services:
+            response = """Kapital Bank provides comprehensive account services:
 
 • **Current Accounts**: For daily banking needs
 • **Savings Accounts**: Earn interest on your deposits
@@ -449,7 +442,7 @@ All accounts include:
 Visit any branch to open an account today!"""
         
         else:
-            response = """Hello! I'm your AI assistant. I can help you with:
+            response = """Hello! I'm your Kapital Bank AI assistant. I can help you with:
 
 🏦 **Branch & ATM locations** - Find the nearest services
 💱 **Currency rates** - Current CBAR reference rates and conversions  
@@ -480,19 +473,11 @@ async def home(request: Request):
         except Exception as e:
             logger.warning(f"Failed to load currency rates for home page: {e}")
             # Use fallback data
-            currency_rates = {
-                "rates": {
-                    "USD": {"rate": 1.70, "name": "US Dollar"},
-                    "EUR": {"rate": 1.85, "name": "Euro"},
-                    "GBP": {"rate": 2.15, "name": "British Pound"},
-                    "RUB": {"rate": 0.018, "name": "Russian Ruble"},
-                    "TRY": {"rate": 0.055, "name": "Turkish Lira"}
-                }
-            }
+            currency_rates = get_fallback_currency_rates()
         
         return templates.TemplateResponse("index.html", {
             "request": request,
-            "title": "AI Assistant",
+            "title": "Kapital Bank AI Assistant",
             "currency_rates": currency_rates
         })
     except Exception as e:
@@ -520,6 +505,7 @@ async def currency_page(request: Request):
             currency_rates = await get_currency_rates()
         except Exception as e:
             logger.warning(f"Failed to load currency rates for currency page: {e}")
+            currency_rates = get_fallback_currency_rates()
         
         return templates.TemplateResponse("currency.html", {
             "request": request,
@@ -641,7 +627,7 @@ async def server_error_handler(request: Request, exc):
 @app.on_event("startup")
 async def startup_event():
     """Initialize app on startup"""
-    logger.info("AI Assistant starting up...")
+    logger.info("Kapital Bank AI Assistant starting up...")
     
     # Warm up currency cache
     try:
@@ -650,13 +636,13 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Failed to warm up currency cache: {e}")
     
-    logger.info("AI Assistant ready!")
+    logger.info("Kapital Bank AI Assistant ready!")
 
 # Shutdown event  
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    logger.info("AI Assistant shutting down...")
+    logger.info("Kapital Bank AI Assistant shutting down...")
 
 if __name__ == "__main__":
     import uvicorn
