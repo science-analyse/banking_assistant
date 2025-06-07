@@ -1,17 +1,4 @@
-/* Medium screens */
-@media (max-width: 991.98px) {
-  .chat-header {
-    padding: 0.75rem 1rem;
-  }
-  
-  .chat-messages {
-    padding: 1rem;
-  }
-  
-  .chat-input-container {
-    padding: 0.75rem 1rem;
-  }
-}/* ========================================
+/* ========================================
    CSS Custom Properties (Light Mode Only)
 ======================================== */
 :root {
@@ -60,10 +47,16 @@
 }
 
 /* ========================================
-   Base Styles
+   Base Styles - FIXED LAYOUT
 ======================================== */
 * {
   box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
@@ -71,40 +64,25 @@ body {
   line-height: 1.6;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  padding-top: var(--navbar-height);
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-/* Enhanced scrollbar for webkit browsers */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--border-radius);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  min-height: 100vh;
 }
 
 /* ========================================
-   Navigation Styles
+   Navigation Styles - FIXED
 ======================================== */
 .navbar {
   height: var(--navbar-height);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(10px);
   background-color: rgba(248, 249, 250, 0.95) !important;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
 }
 
 .navbar-brand {
@@ -122,17 +100,25 @@ body {
 }
 
 /* ========================================
-   Chat App Container
+   Main Content Area - FIXED
 ======================================== */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--navbar-height);
+  min-height: calc(100vh - var(--navbar-height));
+}
+
 .chat-app-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--navbar-height));
+  min-height: calc(100vh - var(--navbar-height));
 }
 
 /* ========================================
-   Welcome Section
+   Welcome Section - FIXED
 ======================================== */
 .welcome-section {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
@@ -146,38 +132,23 @@ body {
 }
 
 /* ========================================
-   Footer Styles
-======================================== */
-footer {
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
-  margin-top: auto;
-}
-
-footer .btn {
-  transition: var(--transition);
-}
-
-footer .btn:hover {
-  transform: translateY(-1px);
-}
-
-/* ========================================
-   Chat Container
+   Chat Container - FIXED
 ======================================== */
 .chat-container {
   background: var(--bg-primary);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
-  height: 700px;
   display: flex;
   flex-direction: column;
-  margin-bottom: 2rem;
+  flex: 1;
+  margin: 2rem 0;
+  min-height: 600px;
+  max-height: calc(100vh - 320px);
 }
 
 /* ========================================
-   Chat Header
+   Chat Header - FIXED
 ======================================== */
 .chat-header {
   background: var(--bg-secondary);
@@ -214,14 +185,14 @@ footer .btn:hover {
 }
 
 /* ========================================
-   Chat Messages
+   Chat Messages - FIXED
 ======================================== */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
   scroll-behavior: smooth;
-  height: calc(700px - var(--chat-header-height) - 140px);
+  min-height: 300px;
 }
 
 .message {
@@ -303,25 +274,6 @@ footer .btn:hover {
   margin-bottom: 0;
 }
 
-.message-bubble ul, .message-bubble ol {
-  margin-bottom: 0.5rem;
-}
-
-.message-bubble li {
-  margin-bottom: 0.25rem;
-}
-
-.message-bubble code {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.user-message .message-bubble code {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 .message-time {
   margin-top: 0.5rem;
   font-size: 0.75rem;
@@ -333,7 +285,7 @@ footer .btn:hover {
 }
 
 /* ========================================
-   Typing Indicator
+   Typing Indicator - FIXED
 ======================================== */
 .typing-indicator {
   opacity: 0.7;
@@ -375,12 +327,13 @@ footer .btn:hover {
 }
 
 /* ========================================
-   Chat Input
+   Chat Input - FIXED
 ======================================== */
 .chat-input-container {
   background: var(--bg-primary);
   border-top: 1px solid var(--border-color);
   padding: 1rem 1.5rem;
+  flex-shrink: 0;
 }
 
 .chat-input-container .form-control {
@@ -415,100 +368,54 @@ footer .btn:hover {
 }
 
 /* ========================================
-   Utility Classes
+   Footer Styles - FIXED POSITIONING
 ======================================== */
-.text-gradient {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+footer {
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 1rem 0;
 }
 
-.bg-gradient-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-}
-
-.card-hover {
+footer .btn {
   transition: var(--transition);
 }
 
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+footer .btn:hover {
+  transform: translateY(-1px);
 }
 
 /* ========================================
-   Accessibility Improvements
+   Enhanced scrollbar for webkit browsers
 ======================================== */
-.sr-only-focusable {
-  position: absolute;
-  left: -10000px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.sr-only-focusable:focus {
-  position: static;
-  left: auto;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  background: var(--primary-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  text-decoration: none;
-  z-index: 10000;
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius);
 }
 
-/* Focus indicators */
-.btn:focus,
-.form-control:focus,
-.quick-action-btn:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius);
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  :root {
-    --border-color: #000000;
-    --text-secondary: #000000;
-    --bg-secondary: #ffffff;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  
-  .message {
-    animation: none;
-  }
-  
-  .typing-animation span {
-    animation: none;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 /* ========================================
-   Responsive Design
+   Responsive Design - FIXED
 ======================================== */
 
 /* Large screens */
 @media (min-width: 1200px) {
   .chat-container {
-    height: 700px;
-  }
-  
-  .chat-messages {
-    height: calc(700px - var(--chat-header-height) - 140px);
+    min-height: 700px;
   }
 }
 
@@ -523,7 +430,7 @@ footer .btn:hover {
   }
   
   .chat-messages {
-    padding: 0.75rem;
+    padding: 1rem;
   }
   
   .chat-input-container {
@@ -536,14 +443,6 @@ footer .btn:hover {
   :root {
     --navbar-height: 60px;
     --chat-header-height: 70px;
-  }
-  
-  body {
-    padding-top: var(--navbar-height);
-  }
-  
-  .chat-app-container {
-    height: calc(100vh - var(--navbar-height));
   }
   
   .welcome-section {
@@ -568,14 +467,13 @@ footer .btn:hover {
   }
   
   .chat-container {
-    height: calc(100vh - 280px);
-    margin-bottom: 1rem;
+    margin: 1rem 0;
     border-radius: var(--border-radius);
+    min-height: calc(100vh - 300px);
   }
   
   .chat-messages {
-    height: calc(100vh - 280px - var(--chat-header-height) - 120px);
-    padding: 0.5rem;
+    padding: 0.75rem;
   }
   
   .message {
@@ -657,6 +555,29 @@ footer .btn:hover {
   .message-content {
     max-width: calc(100% - 50px);
   }
+}
+
+/* ========================================
+   Utility Classes
+======================================== */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+}
+
+.card-hover {
+  transition: var(--transition);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ========================================
