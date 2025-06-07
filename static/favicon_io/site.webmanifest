@@ -1,7 +1,7 @@
 {
-  "name": "AI Banking Assistant for Azerbaijan",
+  "name": "Banking AI Assistant for Azerbaijan",
   "short_name": "Banking Assistant",
-  "description": "Free AI-powered banking assistant with real-time loan comparison, branch finder, and currency rates for Azerbaijan banks",
+  "description": "Free AI-powered banking assistant with real-time location finder, currency rates, and banking services for Azerbaijan",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -50,7 +50,7 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Loan comparison and branch finder interface"
+      "label": "Banking services and currency rates interface"
     },
     {
       "src": "/static/images/screenshot-narrow.png", 
@@ -62,10 +62,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Compare Loans",
-      "short_name": "Loans",
-      "description": "Compare loan rates from multiple banks",
-      "url": "/loans",
+      "name": "Find Locations",
+      "short_name": "Locations",
+      "description": "Find nearby bank branches and ATMs",
+      "url": "/locations",
       "icons": [
         {
           "src": "/static/favicon_io/android-chrome-192x192.png",
@@ -74,10 +74,10 @@
       ]
     },
     {
-      "name": "Find Branches",
-      "short_name": "Branches", 
-      "description": "Find nearest bank branches",
-      "url": "/branches",
+      "name": "Currency Rates",
+      "short_name": "Currency", 
+      "description": "Check currency exchange rates",
+      "url": "/currency",
       "icons": [
         {
           "src": "/static/favicon_io/android-chrome-192x192.png",
@@ -90,18 +90,6 @@
       "short_name": "Chat",
       "description": "Chat with AI banking assistant",
       "url": "/chat",
-      "icons": [
-        {
-          "src": "/static/favicon_io/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Currency Rates",
-      "short_name": "Currency",
-      "description": "Check currency exchange rates",
-      "url": "/currency",
       "icons": [
         {
           "src": "/static/favicon_io/android-chrome-192x192.png",

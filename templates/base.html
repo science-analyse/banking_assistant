@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
-    <title>{% block title %} AI Assistant{% endblock %}</title>
+    <title>{% block title %}Banking AI Assistant{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='favicon_io/favicon-32x32.png') }}">
@@ -28,19 +28,19 @@
     <link rel="manifest" href="{{ url_for('static', path='favicon_io/site.webmanifest') }}">
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="AI-powered banking location finder and currency intelligence for Azerbaijan. Find  branches, ATMs, and get real-time currency rates.">
-    <meta name="keywords" content=", Azerbaijan, ATM, branches, currency, exchange rates, AI assistant">
-    <meta name="author" content=" AI Assistant">
+    <meta name="description" content="AI-powered banking location finder and currency intelligence for Azerbaijan. Find branches, ATMs, and get real-time currency rates.">
+    <meta name="keywords" content="Azerbaijan, banking, ATM, branches, currency, exchange rates, AI assistant">
+    <meta name="author" content="Banking AI Assistant">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="{% block og_title %} AI Assistant{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Banking AI Assistant{% endblock %}">
     <meta property="og:description" content="AI-powered banking location & currency intelligence for Azerbaijan">
     <meta property="og:type" content="website">
     <meta property="og:image" content="{{ url_for('static', path='favicon_io/android-chrome-512x512.png') }}">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block twitter_title %} AI Assistant{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}Banking AI Assistant{% endblock %}">
     <meta name="twitter:description" content="AI-powered banking location & currency intelligence for Azerbaijan">
     
     <!-- Theme Color for Mobile Browsers (Light Mode Only) -->
@@ -58,9 +58,9 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top" role="navigation" aria-label="Main navigation">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/" aria-label=" AI Assistant Home">
+            <a class="navbar-brand d-flex align-items-center" href="/" aria-label="Banking AI Assistant Home">
                 <i class="bi bi-bank me-2" aria-hidden="true"></i>
-                <span class="fw-bold"> AI</span>
+                <span class="fw-bold">Banking AI</span>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
@@ -133,7 +133,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <h6 class="fw-bold text-primary"> AI Assistant</h6>
+                    <h6 class="fw-bold text-primary">Banking AI Assistant</h6>
                     <p class="text-muted small mb-0">AI-powered banking location & currency intelligence for Azerbaijan</p>
                     <p class="text-muted small mb-0">
                         <span id="app-version">v1.0.0</span> | 
@@ -142,10 +142,6 @@
                 </div>
                 <div class="col-md-6 text-md-end">
                     <div class="d-flex justify-content-md-end gap-3 flex-wrap">
-                        <a href="https://www.kapitalbank.az" target="_blank" rel="noopener" 
-                           class="text-decoration-none" aria-label="Visit  website">
-                            <i class="bi bi-globe me-1" aria-hidden="true"></i>
-                        </a>
                         <a href="/api/health" target="_blank" rel="noopener" 
                            class="text-decoration-none" aria-label="Check system status">
                             <i class="bi bi-activity me-1" aria-hidden="true"></i>Status

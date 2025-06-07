@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Home -  AI Assistant{% endblock %}
+{% block title %}Home - Banking AI Assistant{% endblock %}
 {% block page_name %}home{% endblock %}
 
 {% block content %}
@@ -11,7 +11,7 @@
             <div class="col-lg-6">
                 <div class="hero-content">
                     <h1 class="display-4 fw-bold text-primary mb-4">
-                        🏛️  <span class="text-secondary">AI Assistant</span>
+                        🏛️ Banking <span class="text-secondary">AI Assistant</span>
                     </h1>
                     <p class="lead text-muted mb-4">
                         AI-powered banking location finder and currency intelligence for Azerbaijan. 
@@ -91,7 +91,7 @@
         <div class="row">
             <div class="col-12 text-center mb-5">
                 <h2 class="fw-bold">Available Services</h2>
-                <p class="text-muted">Find all  services in one place</p>
+                <p class="text-muted">Find all banking services in one place</p>
             </div>
         </div>
         
@@ -158,49 +158,28 @@
                 <div class="currency-rates-card">
                     {% if currency_rates and currency_rates.rates %}
                     <div class="row g-3">
-                        <div class="col-md-3 col-6" data-currency="USD">
+                        {% for currency, rate in currency_rates.rates.items() %}
+                        {% if currency in ['USD', 'EUR', 'GBP', 'RUB', 'TRY'] %}
+                        <div class="col-md-3 col-6" data-currency="{{ currency }}">
                             <div class="currency-item">
-                                <div class="currency-flag">🇺🇸</div>
+                                <div class="currency-flag">
+                                    {% if currency == 'USD' %}🇺🇸
+                                    {% elif currency == 'EUR' %}🇪🇺
+                                    {% elif currency == 'GBP' %}🇬🇧
+                                    {% elif currency == 'RUB' %}🇷🇺
+                                    {% elif currency == 'TRY' %}🇹🇷
+                                    {% else %}💱
+                                    {% endif %}
+                                </div>
                                 <div>
-                                    <div class="fw-bold">USD</div>
-                                    <div class="currency-rate text-primary">{{ "%.4f"|format(currency_rates.rates.USD) }}</div>
+                                    <div class="fw-bold">{{ currency }}</div>
+                                    <div class="currency-rate text-primary">{{ "%.4f"|format(rate) }}</div>
                                     <small class="text-muted">AZN</small>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3 col-6" data-currency="EUR">
-                            <div class="currency-item">
-                                <div class="currency-flag">🇪🇺</div>
-                                <div>
-                                    <div class="fw-bold">EUR</div>
-                                    <div class="currency-rate text-primary">{{ "%.4f"|format(currency_rates.rates.EUR) }}</div>
-                                    <small class="text-muted">AZN</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-3 col-6" data-currency="RUB">
-                            <div class="currency-item">
-                                <div class="currency-flag">🇷🇺</div>
-                                <div>
-                                    <div class="fw-bold">RUB</div>
-                                    <div class="currency-rate text-primary">{{ "%.4f"|format(currency_rates.rates.RUB) }}</div>
-                                    <small class="text-muted">AZN</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-3 col-6" data-currency="TRY">
-                            <div class="currency-item">
-                                <div class="currency-flag">🇹🇷</div>
-                                <div>
-                                    <div class="fw-bold">TRY</div>
-                                    <div class="currency-rate text-primary">{{ "%.4f"|format(currency_rates.rates.TRY) }}</div>
-                                    <small class="text-muted">AZN</small>
-                                </div>
-                            </div>
-                        </div>
+                        {% endif %}
+                        {% endfor %}
                     </div>
                     {% else %}
                     <div class="text-center py-4">
