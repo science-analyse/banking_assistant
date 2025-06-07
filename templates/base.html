@@ -1,27 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="auto">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
     <title>{% block title %}Kapital Bank AI Assistant{% endblock %}</title>
-    
-    <!-- Theme Detection Script (Must be in head to prevent FOUC) -->
-    <script>
-        // Detect and apply theme before page renders
-        (function() {
-            const getStoredTheme = () => localStorage.getItem('theme');
-            const getPreferredTheme = () => {
-                const storedTheme = getStoredTheme();
-                if (storedTheme) {
-                    return storedTheme;
-                }
-                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            };
-            
-            const theme = getPreferredTheme();
-            document.documentElement.setAttribute('data-bs-theme', theme);
-        })();
-    </script>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='favicon_io/favicon-32x32.png') }}">
@@ -61,9 +43,8 @@
     <meta name="twitter:title" content="{% block twitter_title %}Kapital Bank AI Assistant{% endblock %}">
     <meta name="twitter:description" content="AI-powered banking location & currency intelligence for Azerbaijan">
     
-    <!-- Theme Color for Mobile Browsers -->
-    <meta name="theme-color" content="#1f4e79" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#212529" media="(prefers-color-scheme: dark)">
+    <!-- Theme Color for Mobile Browsers (Light Mode Only) -->
+    <meta name="theme-color" content="#1f4e79">
     
     <!-- Prevent zoom on form focus for iOS -->
     <meta name="format-detection" content="telephone=no">
@@ -110,14 +91,6 @@
                 </ul>
                 
                 <div class="navbar-nav">
-                    <!-- Theme Toggle Button -->
-                    <div class="nav-item me-2">
-                        <button class="btn btn-outline-light btn-sm" onclick="toggleTheme()" 
-                                title="Toggle dark/light mode" aria-label="Toggle theme">
-                            <i id="theme-icon" class="bi bi-moon" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                    
                     <!-- Language Dropdown -->
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" 
@@ -223,10 +196,6 @@
                             <strong>Screen Reader:</strong> Full ARIA labels and semantic markup
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-palette me-2 text-primary"></i>
-                            <strong>Theme Support:</strong> Dark/Light mode toggle
-                        </li>
-                        <li class="mb-2">
                             <i class="bi bi-zoom-in me-2 text-primary"></i>
                             <strong>Zoom Support:</strong> Up to 500% zoom without loss of functionality
                         </li>
@@ -241,7 +210,7 @@
                         <li><kbd>Alt + H</kbd> - Go to home page</li>
                         <li><kbd>Alt + L</kbd> - Go to locations page</li>
                         <li><kbd>Alt + C</kbd> - Go to currency page</li>
-                        <li><kbd>Alt + T</kbd> - Toggle dark/light theme</li>
+                        <li><kbd>Alt + A</kbd> - Go to AI chat</li>
                     </ul>
                 </div>
                 <div class="modal-footer">
@@ -255,53 +224,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Theme Management Script -->
     <script>
-        // Theme management
-        const getStoredTheme = () => localStorage.getItem('theme');
-        const setStoredTheme = theme => localStorage.setItem('theme', theme);
-        
-        const getPreferredTheme = () => {
-            const storedTheme = getStoredTheme();
-            if (storedTheme) {
-                return storedTheme;
-            }
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        };
-        
-        const setTheme = theme => {
-            if (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.setAttribute('data-bs-theme', 'dark');
-            } else {
-                document.documentElement.setAttribute('data-bs-theme', theme);
-            }
-            
-            // Update theme icon
-            const themeIcon = document.getElementById('theme-icon');
-            if (themeIcon) {
-                const currentTheme = document.documentElement.getAttribute('data-bs-theme');
-                themeIcon.className = currentTheme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
-            }
-        };
-        
-        const toggleTheme = () => {
-            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            setStoredTheme(newTheme);
-            setTheme(newTheme);
-        };
-        
-        // Initialize theme
-        setTheme(getPreferredTheme());
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            const storedTheme = getStoredTheme();
-            if (storedTheme !== 'light' && storedTheme !== 'dark') {
-                setTheme(getPreferredTheme());
-            }
-        });
-        
         // Connection status monitoring
         function updateConnectionStatus() {
             const indicator = document.getElementById('connectionStatus');
@@ -339,9 +262,9 @@
                         e.preventDefault();
                         window.location.href = '/currency';
                         break;
-                    case 't':
+                    case 'a':
                         e.preventDefault();
-                        toggleTheme();
+                        window.location.href = '/chat';
                         break;
                 }
             }
@@ -375,7 +298,6 @@
         
         // Language management
         window.setLanguage = function(lang) {
-            KapitalBankApp.state.currentLanguage = lang;
             localStorage.setItem('language', lang);
             
             const currentLangEl = document.getElementById('currentLanguage');
@@ -402,12 +324,6 @@
         const savedLanguage = localStorage.getItem('language') || 'en';
         if (savedLanguage !== 'en') {
             setLanguage(savedLanguage);
-        }
-        
-        // Performance optimization: Reduce animations on low-end devices
-        if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
-            document.documentElement.style.setProperty('--kb-transition', 'none');
-            document.documentElement.style.setProperty('--kb-transition-slow', 'none');
         }
         
         // Service Worker registration for PWA
@@ -448,7 +364,6 @@
         });
         
         // Expose global functions
-        window.toggleTheme = toggleTheme;
         window.showAccessibilityInfo = showAccessibilityInfo;
     </script>
     
@@ -457,36 +372,5 @@
     
     <!-- Page-specific scripts -->
     {% block extra_scripts %}{% endblock %}
-    
-    <!-- Analytics and Performance Monitoring (Optional) -->
-    <script>
-        // Simple analytics tracking
-        function trackPageView() {
-            if (typeof gtag !== 'undefined') {
-                gtag('config', 'GA_MEASUREMENT_ID', {
-                    page_title: document.title,
-                    page_location: window.location.href
-                });
-            }
-        }
-        
-        // Performance monitoring
-        function monitorPerformance() {
-            if ('performance' in window) {
-                window.addEventListener('load', function() {
-                    setTimeout(function() {
-                        const perfData = performance.getEntriesByType('navigation')[0];
-                        if (perfData) {
-                            console.log('Page load time:', perfData.loadEventEnd - perfData.loadEventStart, 'ms');
-                        }
-                    }, 0);
-                });
-            }
-        }
-        
-        // Initialize monitoring
-        trackPageView();
-        monitorPerformance();
-    </script>
 </body>
 </html>
