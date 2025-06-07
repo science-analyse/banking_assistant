@@ -1582,7 +1582,7 @@ window.setLanguage = function(lang) {
 // Load saved language
 const savedLanguage = localStorage.getItem('language') || 'en';
 if (savedLanguage !== 'en') {
-    setLanguage(savedLanguage);
+    savedLanguage(savedLanguage);
 }
 
 // Service finder helper for home page
