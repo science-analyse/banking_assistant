@@ -1,4 +1,17 @@
-/* ========================================
+/* Medium screens */
+@media (max-width: 991.98px) {
+  .chat-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .chat-messages {
+    padding: 1rem;
+  }
+  
+  .chat-input-container {
+    padding: 0.75rem 1rem;
+  }
+}/* ========================================
    CSS Custom Properties (Light Mode Only)
 ======================================== */
 :root {
@@ -133,39 +146,20 @@ body {
 }
 
 /* ========================================
-   Quick Actions
+   Footer Styles
 ======================================== */
-.quick-actions {
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border-color);
+footer {
   background: var(--bg-primary);
-  padding: 1rem 0;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
 }
 
-.quick-action-btn {
-  border-radius: var(--border-radius);
+footer .btn {
   transition: var(--transition);
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.25rem;
 }
 
-.quick-action-btn:hover {
+footer .btn:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-.quick-action-btn:active {
-  transform: translateY(0);
 }
 
 /* ========================================
@@ -176,7 +170,7 @@ body {
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
-  height: 600px;
+  height: 700px;
   display: flex;
   flex-direction: column;
   margin-bottom: 2rem;
@@ -225,9 +219,9 @@ body {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1.5rem;
   scroll-behavior: smooth;
-  height: calc(600px - var(--chat-header-height) - 120px);
+  height: calc(700px - var(--chat-header-height) - 140px);
 }
 
 .message {
@@ -514,7 +508,7 @@ body {
   }
   
   .chat-messages {
-    height: calc(700px - var(--chat-header-height) - 120px);
+    height: calc(700px - var(--chat-header-height) - 140px);
   }
 }
 
@@ -672,8 +666,8 @@ body {
   .navbar,
   .chat-header,
   .chat-input-container,
-  .quick-actions,
-  .welcome-section {
+  .welcome-section,
+  footer {
     display: none !important;
   }
   
