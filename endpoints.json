@@ -35,18 +35,6 @@
             "company": "Central Bank of Azerbaijan",
             "description": "Provides daily exchange rates from the Central Bank of Azerbaijan in XML format.",
             "url": "https://www.cbar.az/currencies/05.06.2025.xml"
-        },
-        {
-            "name": "Currency info for different banks",
-            "company": "azn.az",
-            "description": "Provides currency information and exchange rates for different banks in Azerbaijan.",
-            "url": "https://www.azn.az/data/data.json"
-        },
-        {
-            "name": "All bank currency rates",
-            "company": "valyuta.com",
-            "description": "Provides exchange rates for all banks in Azerbaijan.",
-            "url": "https://www.valyuta.com/api/all-bank-rates"
         }
     ]
 }
