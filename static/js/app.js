@@ -1,5 +1,5 @@
 /**
- *  AI Assistant - Main Application Script
+ * AI Assistant - Main Application Script
  * Light Mode Only - Enhanced with PWA and offline support
  */
 
@@ -19,13 +19,18 @@ class KapitalBankApp {
             messages: [],
             sessionId: this.generateSessionId()
         };
+        this.state = {
+            map: null,
+            currentLocation: [40.4093, 49.8671] // Default Baku coordinates
+        };
+        this.deferredPrompt = null;
         
         this.init();
     }
     
     // Initialize the application
     init() {
-        console.log(' AI Assistant initializing...');
+        console.log('Kapital Bank AI Assistant initializing...');
         
         // Setup event listeners
         this.setupEventListeners();
@@ -42,7 +47,7 @@ class KapitalBankApp {
         // Setup connection monitoring
         this.setupConnectionMonitoring();
         
-        console.log(' AI Assistant ready!');
+        console.log('Kapital Bank AI Assistant ready!');
     }
     
     // Setup global event listeners
@@ -512,7 +517,7 @@ class KapitalBankApp {
                         <div class="text-end">
                             ${distanceText}
                             <div class="mt-2">
-                                <button class="btn btn-sm btn-outline-primary" onclick="app.showLocationDetails(${location.id})">
+                                <button class="btn btn-sm btn-outline-primary" onclick="app.showLocationDetails('${location.id}')">
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                                 <button class="btn btn-sm btn-primary" onclick="app.getDirections(${location.latitude}, ${location.longitude})">
@@ -601,7 +606,268 @@ class KapitalBankApp {
         } else if (msg.includes('loan') || msg.includes('credit')) {
             return "I can provide general loan information! You can use the offline loan calculator on our loans page. For specific rates and applications, please visit a branch or contact us at +994 12 310 00 00.";
         } else {
-            return "I'm currently offline, so my responses are limited. For immediate assistance, please call our customer service at +994 12 310 00 00 or visit any  branch. I'll be back with full functionality once you're online!";
+            return "I'm currently offline, so my responses are limited. For immediate assistance, please call our customer service at +994 12 310 00 00 or visit any Kapital Bank branch. I'll be back with full functionality once you're online!";
+        }
+    }
+    
+    // Missing implementations that were causing errors
+    loadChatHistory() {
+        try {
+            const history = localStorage.getItem('kb_chat_history');
+            if (history) {
+                this.chat.messages = JSON.parse(history);
+                this.displayChatHistory();
+            }
+        } catch (error) {
+            console.warn('Failed to load chat history:', error);
+            this.chat.messages = [];
+        }
+    }
+    
+    saveChatHistory() {
+        try {
+            localStorage.setItem('kb_chat_history', JSON.stringify(this.chat.messages));
+        } catch (error) {
+            console.warn('Failed to save chat history:', error);
+        }
+    }
+    
+    displayChatHistory() {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages || !this.chat.messages.length) return;
+        
+        this.chat.messages.forEach(msg => {
+            this.addChatMessage(msg.sender, msg.content);
+        });
+    }
+    
+    setupChatInterface() {
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+        
+        if (chatForm && messageInput) {
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (message) {
+                    this.sendChatMessage(message);
+                    messageInput.value = '';
+                }
+            });
+        }
+    }
+    
+    showTypingIndicator() {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = `
+            <div class="typing-content">
+                <span>AI is typing</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    hideTypingIndicator() {
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+    
+    showInstallPrompt() {
+        if (!this.deferredPrompt) return;
+        
+        const alertHTML = `
+            <div class="alert alert-info alert-dismissible fade show" role="alert" id="installPrompt">
+                <i class="bi bi-download me-2"></i>
+                Install Kapital Bank AI Assistant for easy access!
+                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="app.installApp()">Install</button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        this.showAlert(alertHTML);
+    }
+    
+    hideInstallPrompt() {
+        const prompt = document.getElementById('installPrompt');
+        if (prompt) {
+            prompt.remove();
+        }
+        this.deferredPrompt = null;
+    }
+    
+    async installApp() {
+        if (!this.deferredPrompt) return;
+        
+        try {
+            const result = await this.deferredPrompt.prompt();
+            console.log('Install prompt result:', result);
+            this.hideInstallPrompt();
+        } catch (error) {
+            console.error('Install prompt error:', error);
+        }
+        
+        this.deferredPrompt = null;
+    }
+    
+    loadQuickStats() {
+        // Mock implementation for quick stats on home page
+        console.log('Loading quick stats...');
+    }
+    
+    loadRecentRates() {
+        // Implementation for loading recent rates on home page
+        this.loadCurrencyRates();
+    }
+    
+    initMap() {
+        const mapContainer = document.getElementById('map');
+        if (!mapContainer || typeof L === 'undefined') return;
+        
+        try {
+            this.state.map = L.map('map').setView(this.state.currentLocation, 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: ' OpenStreetMap contributors'
+            }).addTo(this.state.map);
+            
+            // Add user location marker
+            L.marker(this.state.currentLocation)
+                .addTo(this.state.map)
+                .bindPopup('Your location')
+                .openPopup();
+                
+        } catch (error) {
+            console.error('Map initialization error:', error);
+        }
+    }
+    
+    updateMapMarkers() {
+        if (!this.state.map || !this.locations.data) return;
+        
+        // Clear existing markers (except user location)
+        // Implementation would go here
+    }
+    
+    setupLocationFilters() {
+        const filterForm = document.getElementById('locationSearchForm');
+        if (filterForm) {
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(filterForm);
+                const filters = Object.fromEntries(formData);
+                this.loadLocations(filters);
+            });
+        }
+    }
+    
+    requestUserLocation() {
+        if (!navigator.geolocation) return;
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                this.state.currentLocation = [
+                    position.coords.latitude,
+                    position.coords.longitude
+                ];
+                this.locations.userLocation = this.state.currentLocation;
+                
+                if (this.state.map) {
+                    this.state.map.setView(this.state.currentLocation, 14);
+                }
+            },
+            (error) => {
+                console.warn('Geolocation error:', error);
+            }
+        );
+    }
+    
+    setupLoanCalculator() {
+        // Implementation for loan calculator
+        console.log('Setting up loan calculator...');
+    }
+    
+    populateCurrencySelects() {
+        const fromSelect = document.getElementById('fromCurrency');
+        const toSelect = document.getElementById('toCurrency');
+        
+        if (!fromSelect || !toSelect || !this.currency.rates) return;
+        
+        const currencies = ['AZN', ...Object.keys(this.currency.rates)];
+        
+        currencies.forEach(currency => {
+            const optionFrom = new Option(
+                `${this.getCurrencyFlag(currency)} ${currency}`,
+                currency
+            );
+            const optionTo = new Option(
+                `${this.getCurrencyFlag(currency)} ${currency}`,
+                currency
+            );
+            
+            fromSelect.appendChild(optionFrom);
+            toSelect.appendChild(optionTo);
+        });
+    }
+    
+    showLocationDetails(locationId) {
+        console.log('Showing details for location:', locationId);
+        // Implementation for showing location details
+    }
+    
+    getDirections(lat, lng) {
+        // Open directions in default map app
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        window.open(url, '_blank');
+    }
+    
+    handleLanguageChange(language) {
+        console.log('Language changed to:', language);
+        // Implementation for language change handling
+    }
+    
+    handleAjaxForm(form) {
+        console.log('Handling AJAX form:', form);
+        // Implementation for AJAX form handling
+    }
+    
+    handleAction(action, element) {
+        console.log('Handling action:', action, element);
+        // Implementation for action handling
+    }
+    
+    saveFormData(input) {
+        // Implementation for auto-saving form data
+        try {
+            const key = `form_${input.name}`;
+            localStorage.setItem(key, input.value);
+        } catch (error) {
+            console.warn('Failed to save form data:', error);
+        }
+    }
+    
+    syncPendingData() {
+        // Implementation for syncing pending data when back online
+        console.log('Syncing pending data...');
+    }
+    
+    updateCachedData() {
+        // Implementation for updating cached data
+        if (this.isOnline) {
+            this.loadCurrencyRates();
+            this.loadLocations();
         }
     }
     
@@ -628,113 +894,3 @@ class KapitalBankApp {
         
         return response.json();
     }
-    
-    cacheData(key, data) {
-        try {
-            localStorage.setItem(`kb_${key}`, JSON.stringify({
-                data: data,
-                timestamp: Date.now()
-            }));
-        } catch (error) {
-            console.warn('Failed to cache data:', error);
-        }
-    }
-    
-    getCachedData(key, maxAge = 3600000) { // 1 hour default
-        try {
-            const cached = localStorage.getItem(`kb_${key}`);
-            if (!cached) return null;
-            
-            const { data, timestamp } = JSON.parse(cached);
-            
-            if (Date.now() - timestamp > maxAge) {
-                localStorage.removeItem(`kb_${key}`);
-                return null;
-            }
-            
-            return data;
-        } catch (error) {
-            console.warn('Failed to get cached data:', error);
-            return null;
-        }
-    }
-    
-    loadCachedData() {
-        // Load all cached data on startup
-        this.loadCachedCurrencyRates();
-        this.loadCachedLocations();
-        this.loadChatHistory();
-    }
-    
-    formatDate(dateString) {
-        if (!dateString) return 'Unknown';
-        return new Date(dateString).toLocaleString();
-    }
-    
-    getCurrencyFlag(code) {
-        const flags = {
-            'USD': '🇺🇸',
-            'EUR': '🇪🇺', 
-            'GBP': '🇬🇧',
-            'RUB': '🇷🇺',
-            'TRY': '🇹🇷',
-            'GEL': '🇬🇪',
-            'AZN': '🇦🇿'
-        };
-        return flags[code] || '💱';
-    }
-    
-    generateSessionId() {
-        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-    
-    // Additional helper methods would go here...
-    showUpdateAvailable() {
-        // Show update notification
-        const alertHTML = `
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                <i class="bi bi-download me-2"></i>
-                New version available! 
-                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="app.updateApp()">Update</button>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        this.showAlert(alertHTML);
-    }
-    
-    updateApp() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-            });
-        }
-    }
-    
-    showAlert(html) {
-        const container = document.getElementById('alertContainer');
-        if (container) {
-            container.insertAdjacentHTML('beforeend', html);
-        }
-    }
-}
-
-// Initialize the app when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    window.app = new KapitalBankApp();
-});
-
-// Expose some global functions for backward compatibility
-window.calculateLoan = function() {
-    // This function is implemented in the loans template
-    if (typeof calculateLoan !== 'undefined') {
-        calculateLoan();
-    }
-};
-
-window.setLanguage = function(lang) {
-    localStorage.setItem('language', lang);
-    document.dispatchEvent(new CustomEvent('languageChanged', { 
-        detail: { language: lang } 
-    }));
-};
