@@ -124,6 +124,7 @@ body {
 .welcome-section {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   flex-shrink: 0;
+  padding: 2rem 0;
 }
 
 .welcome-section .badge {
@@ -137,6 +138,8 @@ body {
 .quick-actions {
   flex-shrink: 0;
   border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  padding: 1rem 0;
 }
 
 .quick-action-btn {
@@ -144,11 +147,21 @@ body {
   transition: var(--transition);
   font-size: 0.875rem;
   padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem;
 }
 
 .quick-action-btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .quick-action-btn:active {
@@ -178,6 +191,9 @@ body {
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   height: var(--chat-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .chat-header .avatar {
@@ -200,6 +216,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 0.5rem;
 }
 
 /* ========================================
@@ -314,6 +331,7 @@ body {
 .message-time {
   margin-top: 0.5rem;
   font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .user-message .message-time {
@@ -325,6 +343,7 @@ body {
 ======================================== */
 .typing-indicator {
   opacity: 0.7;
+  display: none;
 }
 
 .typing-animation {
@@ -399,6 +418,89 @@ body {
   align-items: center;
   margin-top: 0.5rem;
   font-size: 0.875rem;
+}
+
+/* ========================================
+   Utility Classes
+======================================== */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+}
+
+.card-hover {
+  transition: var(--transition);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ========================================
+   Accessibility Improvements
+======================================== */
+.sr-only-focusable {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.sr-only-focusable:focus {
+  position: static;
+  left: auto;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  z-index: 10000;
+}
+
+/* Focus indicators */
+.btn:focus,
+.form-control:focus,
+.quick-action-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-secondary: #000000;
+    --bg-secondary: #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .message {
+    animation: none;
+  }
+  
+  .typing-animation span {
+    animation: none;
+  }
 }
 
 /* ========================================
@@ -560,89 +662,6 @@ body {
   
   .message-content {
     max-width: calc(100% - 50px);
-  }
-}
-
-/* ========================================
-   Utility Classes
-======================================== */
-.text-gradient {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.bg-gradient-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-}
-
-.card-hover {
-  transition: var(--transition);
-}
-
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-}
-
-/* ========================================
-   Accessibility Improvements
-======================================== */
-.sr-only-focusable {
-  position: absolute;
-  left: -10000px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.sr-only-focusable:focus {
-  position: static;
-  left: auto;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  background: var(--primary-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  text-decoration: none;
-  z-index: 10000;
-}
-
-/* Focus indicators */
-.btn:focus,
-.form-control:focus,
-.quick-action-btn:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  :root {
-    --border-color: #000000;
-    --text-secondary: #000000;
-    --bg-secondary: #ffffff;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  
-  .message {
-    animation: none;
-  }
-  
-  .typing-animation span {
-    animation: none;
   }
 }
 
