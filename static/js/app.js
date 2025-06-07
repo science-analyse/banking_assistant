@@ -1579,11 +1579,11 @@ window.setLanguage = function(lang) {
     Utils.vibrate([25]); // Subtle feedback
 };
 
-// Load saved language
-const savedLanguage = localStorage.getItem('language') || 'en';
-if (savedLanguage !== 'en') {
-    setLanguage(savedLanguage);
-}
+// // Load saved language
+// const savedLanguage = localStorage.getItem('language') || 'en';
+// if (savedLanguage !== 'en') {
+//     setLanguage(savedLanguage);
+// }
 
 // Service finder helper for home page
 window.findService = function(serviceType) {
