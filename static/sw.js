@@ -1,4 +1,4 @@
-// Service Worker for Kapital Bank AI Assistant
+// Service Worker for  AI Assistant
 // Light Mode Only - PWA Support with Offline Functionality
 
 const CACHE_NAME = 'kapital-bank-v1.0.0';
@@ -362,7 +362,7 @@ function createOfflineHTML() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline - Kapital Bank</title>
+    <title>Offline - </title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -486,7 +486,7 @@ self.addEventListener('push', event => {
     const data = event.data.json();
     
     const options = {
-      body: data.body || 'New notification from Kapital Bank',
+      body: data.body || 'New notification from ',
       icon: '/static/favicon_io/android-chrome-192x192.png',
       badge: '/static/favicon_io/favicon-32x32.png',
       tag: data.tag || 'kapital-bank-notification',
@@ -497,7 +497,7 @@ self.addEventListener('push', event => {
     
     event.waitUntil(
       self.registration.showNotification(
-        data.title || 'Kapital Bank',
+        data.title || '',
         options
       )
     );

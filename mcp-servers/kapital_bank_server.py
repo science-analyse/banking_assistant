@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class KapitalBankLocation:
-    """Kapital Bank location data structure"""
+    """ location data structure"""
     id: str
     name: str
     service_type: str
@@ -25,7 +25,7 @@ class KapitalBankLocation:
 
 class KapitalBankServer:
     """
-    MCP Server for Kapital Bank location and service data
+    MCP Server for  location and service data
     Provides tools for finding branches, ATMs, and other banking services
     """
     
@@ -55,13 +55,13 @@ class KapitalBankServer:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
         )
-        logger.info("Kapital Bank MCP Server initialized")
+        logger.info(" MCP Server initialized")
     
     async def close(self):
         """Close the HTTP session"""
         if self.session:
             await self.session.close()
-        logger.info("Kapital Bank MCP Server closed")
+        logger.info(" MCP Server closed")
     
     def _calculate_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         """Calculate distance between two points using Haversine formula"""
@@ -100,7 +100,7 @@ class KapitalBankServer:
         }
     
     async def _fetch_locations(self, service_type: str) -> List[Dict[str, Any]]:
-        """Fetch locations from Kapital Bank API"""
+        """Fetch locations from  API"""
         cache_key = f"locations_{service_type}"
         
         # Check cache first
@@ -207,7 +207,7 @@ class KapitalBankServer:
         elif 'tel' in raw_data:
             contact['phone'] = raw_data['tel']
         else:
-            contact['phone'] = '+994 12 409 00 00'  # Default Kapital Bank number
+            contact['phone'] = '+994 12 409 00 00'  # Default  number
         
         # Email (usually not provided for individual branches)
         contact['email'] = raw_data.get('email', 'info@kapitalbank.az')
@@ -274,7 +274,7 @@ class KapitalBankServer:
     
     async def find_kapital_service(self, latitude: float, longitude: float, service_type: str,
                                  radius_km: int = 5, limit: int = 10) -> Dict[str, Any]:
-        """Find Kapital Bank services near a location"""
+        """Find  services near a location"""
         try:
             # Fetch all locations for the service type
             all_locations = await self._fetch_locations(service_type)
@@ -346,7 +346,7 @@ class KapitalBankServer:
     
     async def plan_kapital_route(self, user_location: Tuple[float, float], 
                                needed_services: List[str], optimize_for: str = "distance") -> Dict[str, Any]:
-        """Plan optimal route for multiple Kapital Bank services"""
+        """Plan optimal route for multiple  services"""
         try:
             user_lat, user_lng = user_location
             route_stops = []
@@ -394,7 +394,7 @@ class KapitalBankServer:
     
     async def check_service_hours(self, service_type: str, location: Optional[Tuple[float, float]] = None,
                                 day_of_week: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Check operating hours for Kapital Bank services"""
+        """Check operating hours for  services"""
         try:
             if not day_of_week:
                 day_of_week = datetime.now().strftime('%A').lower()
@@ -508,7 +508,7 @@ class KapitalBankServer:
         return 'unknown'
     
     async def _get_nearby_services(self, latitude: float, longitude: float) -> List[Dict[str, Any]]:
-        """Get other Kapital Bank services nearby"""
+        """Get other  services nearby"""
         nearby = []
         
         for service_type in ['atm', 'cash_in', 'payment_terminal']:

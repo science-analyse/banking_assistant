@@ -1,5 +1,5 @@
 /* 
- * Kapital Bank AI Assistant - Light Mode Only Styles
+ *  AI Assistant - Light Mode Only Styles
  * Modern, mobile-first design with clean light theme
  */
 
@@ -7,7 +7,7 @@
    CSS Custom Properties (Variables)
 ======================================== */
 :root {
-  /* Kapital Bank Brand Colors */
+  /*  Brand Colors */
   --kb-primary: #1f4e79;
   --kb-primary-dark: #163a5c;
   --kb-primary-light: #2d5f8f;

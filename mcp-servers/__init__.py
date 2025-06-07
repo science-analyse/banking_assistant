@@ -1,10 +1,10 @@
 """
-MCP Servers Package for Kapital Bank AI Assistant
+MCP Servers Package for  AI Assistant
 Model Context Protocol server implementations for banking and currency services
 """
 
 __version__ = "1.0.0"
-__author__ = "Kapital Bank AI Assistant Team"
+__author__ = " AI Assistant Team"
 
 from .kapital_bank_server import KapitalBankServer
 from .currency_server import CurrencyServer

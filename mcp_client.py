@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class MCPClient:
     """
-    MCP Client for managing connections to Kapital Bank and Currency servers
+    MCP Client for managing connections to  and Currency servers
     and integrating with Google Gemini AI
     """
     
@@ -272,7 +272,7 @@ class MCPClient:
             
             # Build prompt
             prompt = f"""
-You are an AI assistant for Kapital Bank in Azerbaijan. You help users find bank services and get currency information.
+You are an AI assistant for  in Azerbaijan. You help users find bank services and get currency information.
 
 Language: {language}
 User message: {message}
@@ -316,9 +316,9 @@ Generate a helpful response:
     def _get_fallback_response(self, intent: Dict[str, Any], tool_results: Dict[str, Any], language: str) -> str:
         """Generate fallback response when AI is not available"""
         if language == "az":
-            base_response = "Kapital Bank AI köməkçisinə xoş gəlmisiniz! "
+            base_response = " AI köməkçisinə xoş gəlmisiniz! "
         else:
-            base_response = "Welcome to Kapital Bank AI Assistant! "
+            base_response = "Welcome to  AI Assistant! "
         
         # Location-based response
         if intent["needs_location"]:
@@ -415,7 +415,7 @@ Generate a helpful response:
     # Tool method implementations for direct server access
     async def find_kapital_service(self, latitude: float, longitude: float, service_type: str, 
                                  radius_km: int = 5, limit: int = 10) -> Dict[str, Any]:
-        """Find Kapital Bank services"""
+        """Find  services"""
         return await self.call_tool("find_kapital_service", {
             "latitude": latitude,
             "longitude": longitude,

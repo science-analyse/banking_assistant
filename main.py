@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Kapital Bank AI Assistant",
+    title=" AI Assistant",
     description="AI-powered banking location finder and currency intelligence for Azerbaijan",
     version="1.0.0",
     docs_url="/docs",
@@ -200,7 +200,7 @@ async def get_locations(
     type: Optional[str] = None,
     radius: Optional[float] = 5.0
 ):
-    """Get Kapital Bank branches and ATMs"""
+    """Get  branches and ATMs"""
     cache_key = f"locations_{lat}_{lon}_{city}_{type}_{radius}"
     
     if cache_key in locations_cache:
@@ -211,7 +211,7 @@ async def get_locations(
         all_locations = [
             {
                 "id": 1,
-                "name": "Kapital Bank - Nizami Branch",
+                "name": " - Nizami Branch",
                 "type": "branch",
                 "address": "Nizami Street 96, Baku",
                 "latitude": 40.3777,
@@ -222,7 +222,7 @@ async def get_locations(
             },
             {
                 "id": 2,
-                "name": "Kapital Bank ATM - Fountain Square",
+                "name": " ATM - Fountain Square",
                 "type": "atm",
                 "address": "Fountain Square, Baku",
                 "latitude": 40.3656,
@@ -233,7 +233,7 @@ async def get_locations(
             },
             {
                 "id": 3,
-                "name": "Kapital Bank - Ganjlik Branch",
+                "name": " - Ganjlik Branch",
                 "type": "branch",
                 "address": "Ganjlik Avenue 3199, Baku",
                 "latitude": 40.4093,
@@ -244,7 +244,7 @@ async def get_locations(
             },
             {
                 "id": 4,
-                "name": "Kapital Bank ATM - Port Baku Mall",
+                "name": " ATM - Port Baku Mall",
                 "type": "atm", 
                 "address": "Port Baku Mall, Baku",
                 "latitude": 40.3656,
@@ -255,7 +255,7 @@ async def get_locations(
             },
             {
                 "id": 5,
-                "name": "Kapital Bank - Sumgayit Branch",
+                "name": " - Sumgayit Branch",
                 "type": "branch",
                 "address": "Nizami Street 15, Sumgayit",
                 "latitude": 40.5892,
@@ -326,7 +326,7 @@ async def chat_with_ai(message: ChatMessage):
         if any(word in user_msg for word in ["currency", "exchange", "rate", "convert"]):
             response = """I can help you with currency exchange rates! 
 
-Our rates are based on CBAR (Central Bank of Azerbaijan Republic) official rates. CBAR is the regulatory authority that sets the reference exchange rates for Azerbaijan. Commercial banks, including Kapital Bank, use these reference rates and add their own service margins.
+Our rates are based on CBAR (Central Bank of Azerbaijan Republic) official rates. CBAR is the regulatory authority that sets the reference exchange rates for Azerbaijan. Commercial banks, including , use these reference rates and add their own service margins.
 
 Current popular rates (CBAR reference):
 • USD: 1.70 AZN
@@ -336,7 +336,7 @@ Current popular rates (CBAR reference):
 Would you like me to convert a specific amount or show you more currencies?"""
         
         elif any(word in user_msg for word in ["branch", "atm", "location", "address"]):
-            response = """I can help you find Kapital Bank branches and ATMs!
+            response = """I can help you find  branches and ATMs!
 
 We have locations throughout Azerbaijan:
 • **Branches**: Full service locations for deposits, loans, currency exchange
@@ -350,7 +350,7 @@ Popular locations in Baku:
 Would you like me to find the nearest location to you?"""
         
         elif any(word in user_msg for word in ["loan", "credit", "mortgage"]):
-            response = """Kapital Bank offers various loan products:
+            response = """ offers various loan products:
 
 • **Personal Loans**: For your individual needs
 • **Mortgage Loans**: Home financing solutions  
@@ -362,7 +362,7 @@ For detailed information about loan rates, terms, and application process, I rec
 Would you like me to help you find the nearest branch?"""
         
         elif any(word in user_msg for word in ["account", "deposit", "saving"]):
-            response = """Kapital Bank provides comprehensive account services:
+            response = """ provides comprehensive account services:
 
 • **Current Accounts**: For daily banking needs
 • **Savings Accounts**: Earn interest on your deposits
@@ -378,7 +378,7 @@ All accounts include:
 Visit any branch to open an account today!"""
         
         else:
-            response = """Hello! I'm your Kapital Bank AI assistant. I can help you with:
+            response = """Hello! I'm your  AI assistant. I can help you with:
 
 🏦 **Branch & ATM locations** - Find the nearest services
 💱 **Currency rates** - Current CBAR reference rates and conversions  
@@ -403,7 +403,7 @@ async def loans_page(request: Request):
     """Loans information page"""
     return templates.TemplateResponse("loans.html", {
         "request": request,
-        "title": "Loans & Credit - Kapital Bank"
+        "title": "Loans & Credit - "
     })
 
 @app.get("/branches") 
@@ -416,7 +416,7 @@ async def offline_page(request: Request):
     """Offline page for PWA"""
     return templates.TemplateResponse("offline.html", {
         "request": request,
-        "title": "Offline - Kapital Bank"
+        "title": "Offline - "
     })
 
 # Main page routes
@@ -425,7 +425,7 @@ async def home(request: Request):
     """Home page"""
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "title": "Kapital Bank AI Assistant"
+        "title": " AI Assistant"
     })
 
 @app.get("/locations", response_class=HTMLResponse)
@@ -433,7 +433,7 @@ async def locations_page(request: Request):
     """Locations finder page"""
     return templates.TemplateResponse("locations.html", {
         "request": request,
-        "title": "Find Branches & ATMs - Kapital Bank"
+        "title": "Find Branches & ATMs - "
     })
 
 @app.get("/currency", response_class=HTMLResponse)
@@ -441,7 +441,7 @@ async def currency_page(request: Request):
     """Currency exchange page"""
     return templates.TemplateResponse("currency.html", {
         "request": request,
-        "title": "Currency Exchange - Kapital Bank"
+        "title": "Currency Exchange - "
     })
 
 @app.get("/chat", response_class=HTMLResponse)
@@ -449,7 +449,7 @@ async def chat_page(request: Request):
     """AI chat page"""
     return templates.TemplateResponse("chat.html", {
         "request": request,
-        "title": "AI Assistant - Kapital Bank"
+        "title": "AI Assistant - "
     })
 
 # Error handlers
@@ -458,7 +458,7 @@ async def not_found_handler(request: Request, exc):
     """Custom 404 page"""
     return templates.TemplateResponse("404.html", {
         "request": request,
-        "title": "Page Not Found - Kapital Bank"
+        "title": "Page Not Found - "
     }, status_code=404)
 
 @app.exception_handler(500)
@@ -467,14 +467,14 @@ async def server_error_handler(request: Request, exc):
     logger.error(f"Server error: {exc}")
     return templates.TemplateResponse("500.html", {
         "request": request,
-        "title": "Server Error - Kapital Bank"
+        "title": "Server Error - "
     }, status_code=500)
 
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     """Initialize app on startup"""
-    logger.info("Kapital Bank AI Assistant starting up...")
+    logger.info(" AI Assistant starting up...")
     
     # Warm up currency cache
     try:
@@ -483,13 +483,13 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Failed to warm up currency cache: {e}")
     
-    logger.info("Kapital Bank AI Assistant ready!")
+    logger.info(" AI Assistant ready!")
 
 # Shutdown event  
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    logger.info("Kapital Bank AI Assistant shutting down...")
+    logger.info(" AI Assistant shutting down...")
 
 if __name__ == "__main__":
     import uvicorn

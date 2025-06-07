@@ -47,7 +47,7 @@ class CurrencyServer:
         
         # Bank mappings for market rates
         self.major_banks = [
-            'Kapital Bank',
+            '',
             'PASHA Bank',
             'International Bank of Azerbaijan',
             'AccessBank',

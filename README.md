@@ -1,14 +1,14 @@
-# 🏛️ Kapital Bank AI Assistant
+# 🏛️  AI Assistant
 
 **AI-Powered Banking Location & Currency Intelligence for Azerbaijan**
 
-A simple, focused FastAPI application that provides intelligent assistance for Kapital Bank services and real-time currency information in Azerbaijan.
+A simple, focused FastAPI application that provides intelligent assistance for  services and real-time currency information in Azerbaijan.
 
-![Kapital Bank AI Assistant](https://img.shields.io/badge/Status-Live-brightgreen) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115.9-blue) ![Gemini AI](https://img.shields.io/badge/Gemini-AI-orange)
+![ AI Assistant](https://img.shields.io/badge/Status-Live-brightgreen) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115.9-blue) ![Gemini AI](https://img.shields.io/badge/Gemini-AI-orange)
 
 ## 🎯 What This App Does
 
-### 🏛️ **Kapital Bank Services**
+### 🏛️ ** Services**
 - **Find Branches**: Locate bank branches with working hours
 - **ATM Finder**: 24/7 cash withdrawal locations  
 - **Cash-In Machines**: Quick deposit locations
@@ -118,13 +118,13 @@ kapital-bank-ai-assistant/
                   │
 ┌─────────────────▼───────────────────────┐
 │         External Services              │
-│  Kapital Bank API + CBAR + Gemini AI   │
+│   API + CBAR + Gemini AI   │
 └─────────────────────────────────────────┘
 ```
 
 ### **Key Features**
 - ✅ **No Database Required** - Uses external APIs directly
-- ✅ **Real External APIs** - Kapital Bank + CBAR + AZN.az
+- ✅ **Real External APIs** -  + CBAR + AZN.az
 - ✅ **AI Integration** - Google Gemini for intelligent chat
 - ✅ **Mobile First** - Responsive design for all devices
 - ✅ **PWA Ready** - Install as mobile app
@@ -208,7 +208,7 @@ curl -X POST "https://your-app.onrender.com/api/chat" \
 - No complicated setup or database
 - Direct API integration
 
-### **🏛️ Real Kapital Bank Data**
+### **🏛️ Real  Data**
 - Live branch and ATM locations
 - Official CBAR currency rates
 - Actual service information
@@ -240,7 +240,7 @@ GEMINI_API_KEY=your_gemini_api_key_here  # Get from makersuite.google.com
 ### **Optional**
 ```bash
 PORT=8000                                # Auto-set by Render
-APP_NAME="Kapital Bank AI Assistant"     # App display name
+APP_NAME=" AI Assistant"     # App display name
 ```
 
 ---
@@ -342,7 +342,7 @@ uvicorn main:app --reload --log-level debug
 
 ### **Development Guidelines**
 - Keep it simple and focused
-- Test with real Kapital Bank APIs
+- Test with real  APIs
 - Ensure mobile responsiveness
 - Add proper error handling
 
@@ -353,7 +353,7 @@ uvicorn main:app --reload --log-level debug
 - **🌐 Live Demo**: [Your Render URL]
 - **📖 Render Docs**: [docs.render.com](https://docs.render.com)
 - **🤖 Gemini AI**: [makersuite.google.com](https://makersuite.google.com)
-- **🏛️ Kapital Bank**: [kapitalbank.az](https://kapitalbank.az)
+- **🏛️ **: [kapitalbank.az](https://kapitalbank.az)
 - **💱 CBAR**: [cbar.az](https://cbar.az)
 
 ---
@@ -383,6 +383,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**🚀 Deploy your Kapital Bank AI Assistant now and start helping people find banking services in Azerbaijan!**
+**🚀 Deploy your  AI Assistant now and start helping people find banking services in Azerbaijan!**
 
 *Built with ❤️ using FastAPI, Gemini AI, and real Azerbaijani banking APIs*

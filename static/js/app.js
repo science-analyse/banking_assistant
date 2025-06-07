@@ -1,5 +1,5 @@
 /**
- * Kapital Bank AI Assistant - Main Application Script
+ *  AI Assistant - Main Application Script
  * Light Mode Only - Enhanced with PWA and offline support
  */
 
@@ -25,7 +25,7 @@ class KapitalBankApp {
     
     // Initialize the application
     init() {
-        console.log('Kapital Bank AI Assistant initializing...');
+        console.log(' AI Assistant initializing...');
         
         // Setup event listeners
         this.setupEventListeners();
@@ -42,7 +42,7 @@ class KapitalBankApp {
         // Setup connection monitoring
         this.setupConnectionMonitoring();
         
-        console.log('Kapital Bank AI Assistant ready!');
+        console.log(' AI Assistant ready!');
     }
     
     // Setup global event listeners
@@ -601,7 +601,7 @@ class KapitalBankApp {
         } else if (msg.includes('loan') || msg.includes('credit')) {
             return "I can provide general loan information! You can use the offline loan calculator on our loans page. For specific rates and applications, please visit a branch or contact us at +994 12 310 00 00.";
         } else {
-            return "I'm currently offline, so my responses are limited. For immediate assistance, please call our customer service at +994 12 310 00 00 or visit any Kapital Bank branch. I'll be back with full functionality once you're online!";
+            return "I'm currently offline, so my responses are limited. For immediate assistance, please call our customer service at +994 12 310 00 00 or visit any  branch. I'll be back with full functionality once you're online!";
         }
     }
     

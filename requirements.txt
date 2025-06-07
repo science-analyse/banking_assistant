@@ -1,4 +1,4 @@
-# Essential packages for Kapital Bank AI Assistant
+# Essential packages for  AI Assistant
 
 # Web Framework
 fastapi==0.115.9
