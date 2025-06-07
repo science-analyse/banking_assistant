@@ -1,14 +1,14 @@
-# 🏛️  AI Assistant
+# 🏛️ AI Assistant
 
 **AI-Powered Banking Location & Currency Intelligence for Azerbaijan**
 
-A simple, focused FastAPI application that provides intelligent assistance for  services and real-time currency information in Azerbaijan.
+A simple, focused FastAPI application that provides intelligent assistance for banking services and real-time currency information in Azerbaijan.
 
-![ AI Assistant](https://img.shields.io/badge/Status-Live-brightgreen) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115.9-blue) ![Gemini AI](https://img.shields.io/badge/Gemini-AI-orange)
+![Status: Live](https://img.shields.io/badge/Status-Live-brightgreen) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115.9-blue) ![Gemini AI](https://img.shields.io/badge/Gemini-AI-orange)
 
 ## 🎯 What This App Does
 
-### 🏛️ ** Services**
+### 🏛️ **Services**
 - **Find Branches**: Locate bank branches with working hours
 - **ATM Finder**: 24/7 cash withdrawal locations  
 - **Cash-In Machines**: Quick deposit locations
@@ -43,14 +43,14 @@ A simple, focused FastAPI application that provides intelligent assistance for  
 1. **Connect GitHub**: Fork this repo or upload to your GitHub
 2. **Create Web Service**: New → Web Service → Connect repository  
 3. **Configure**:
-   ```
-   Build Command: pip install -r requirements.txt
-   Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT
-   ```
+  ```
+  Build Command: pip install -r requirements.txt
+  Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT
+  ```
 4. **Set Environment Variables**:
-   ```
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
+  ```
+  GEMINI_API_KEY=your_gemini_api_key_here
+  ```
 5. **Deploy**: Click "Create Web Service" ✨
 
 ### 3. **You're Live!**
@@ -66,8 +66,8 @@ A simple, focused FastAPI application that provides intelligent assistance for  
 ### **Quick Start**
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/kapital-bank-ai-assistant.git
-cd kapital-bank-ai-assistant
+git clone https://github.com/yourusername/banking-assistant.git
+cd banking-assistant
 
 # Install dependencies
 pip install -r requirements.txt
@@ -83,21 +83,21 @@ uvicorn main:app --reload --port 8000
 
 ### **Project Structure**
 ```
-kapital-bank-ai-assistant/
-├── 📄 main.py                 # FastAPI app (simplified, no DB)
-├── 📄 requirements.txt        # Essential dependencies
-├── 📄 endpoints.json          # API endpoints configuration
-├── 📁 templates/              # HTML templates
+banking-assistant/
+├── main.py                 # FastAPI app (simplified, no DB)
+├── requirements.txt        # Essential dependencies
+├── endpoints.json          # API endpoints configuration
+├── templates/              # HTML templates
 │   ├── base.html             # Base template with navigation
 │   ├── index.html            # Home page with features
 │   ├── locations.html        # Interactive map & search
 │   ├── currency.html         # Rates & converter
 │   └── chat.html             # AI chat interface
-├── 📁 static/                 # Frontend assets
+├── static/                 # Frontend assets
 │   ├── css/styles.css        # Modern, responsive styles
 │   ├── js/app.js             # JavaScript functionality
 │   └── favicon_io/           # PWA icons
-└── 📄 README.md              # This file
+└── README.md              # This file
 ```
 
 ---
@@ -110,21 +110,21 @@ kapital-bank-ai-assistant/
 │            Frontend (HTML/JS)          │
 │     Bootstrap + Leaflet Maps + PWA     │
 └─────────────────┬───────────────────────┘
-                  │
+            │
 ┌─────────────────▼───────────────────────┐
 │           FastAPI Backend              │
 │    Templates + Static Files + APIs     │
 └─────────────────┬───────────────────────┘
-                  │
+            │
 ┌─────────────────▼───────────────────────┐
 │         External Services              │
-│   API + CBAR + Gemini AI   │
+│   API + CBAR + Gemini AI              │
 └─────────────────────────────────────────┘
 ```
 
 ### **Key Features**
 - ✅ **No Database Required** - Uses external APIs directly
-- ✅ **Real External APIs** -  + CBAR + AZN.az
+- ✅ **Real External APIs** - CBAR + AZN.az
 - ✅ **AI Integration** - Google Gemini for intelligent chat
 - ✅ **Mobile First** - Responsive design for all devices
 - ✅ **PWA Ready** - Install as mobile app
@@ -157,10 +157,10 @@ POST /api/chat                  # AI chat endpoint
 curl -X POST "https://your-app.onrender.com/api/locations/find" \
   -H "Content-Type: application/json" \
   -d '{
-    "latitude": 40.4093,
-    "longitude": 49.8671, 
-    "service_type": "atm",
-    "radius_km": 5
+   "latitude": 40.4093,
+   "longitude": 49.8671, 
+   "service_type": "atm",
+   "radius_km": 5
   }'
 
 # Get currency rates
@@ -170,8 +170,8 @@ curl "https://your-app.onrender.com/api/currency/rates"
 curl -X POST "https://your-app.onrender.com/api/chat" \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Find nearest branch",
-    "language": "en"
+   "message": "Find nearest branch",
+   "language": "en"
   }'
 ```
 
@@ -208,7 +208,7 @@ curl -X POST "https://your-app.onrender.com/api/chat" \
 - No complicated setup or database
 - Direct API integration
 
-### **🏛️ Real  Data**
+### **🏛️ Real Data**
 - Live branch and ATM locations
 - Official CBAR currency rates
 - Actual service information
@@ -240,7 +240,7 @@ GEMINI_API_KEY=your_gemini_api_key_here  # Get from makersuite.google.com
 ### **Optional**
 ```bash
 PORT=8000                                # Auto-set by Render
-APP_NAME=" AI Assistant"     # App display name
+APP_NAME="AI Assistant"                   # App display name
 ```
 
 ---
@@ -251,10 +251,10 @@ APP_NAME=" AI Assistant"     # App display name
 ```python
 # In main.py, update service_map
 service_map = {
-    "branch": "branch",
-    "atm": "atm", 
-    "cash_in": "cash_in",
-    "your_new_service": "api_endpoint_name"
+   "branch": "branch",
+   "atm": "atm", 
+   "cash_in": "cash_in",
+   "your_new_service": "api_endpoint_name"
 }
 ```
 
@@ -262,9 +262,9 @@ service_map = {
 ```python
 # In main.py, update currency parsing
 currency_map = {
-    "dollar": "USD", 
-    "euro": "EUR",
-    "your_currency": "YOUR_CODE"
+   "dollar": "USD", 
+   "euro": "EUR",
+   "your_currency": "YOUR_CODE"
 }
 ```
 
@@ -272,10 +272,10 @@ currency_map = {
 ```python
 # In main.py, update build_ai_prompt function
 def build_ai_prompt(message, language, intent, context_data):
-    prompt = f"""
-    Your custom AI instructions here...
-    """
-    return prompt
+   prompt = f"""
+   Your custom AI instructions here...
+   """
+   return prompt
 ```
 
 ---
@@ -312,7 +312,7 @@ curl https://your-app.onrender.com/api/health
 **❌ External APIs Failing**
 ```bash
 # Test individual endpoints
-curl "https://www.kapitalbank.az/locations/region?type=branch"
+curl "https://www.examplebank.az/locations/region?type=branch"
 curl "https://www.cbar.az/currencies/$(date +%d.%m.%Y).xml"
 ```
 
@@ -342,7 +342,7 @@ uvicorn main:app --reload --log-level debug
 
 ### **Development Guidelines**
 - Keep it simple and focused
-- Test with real  APIs
+- Test with real APIs
 - Ensure mobile responsiveness
 - Add proper error handling
 
@@ -353,7 +353,6 @@ uvicorn main:app --reload --log-level debug
 - **🌐 Live Demo**: [Your Render URL]
 - **📖 Render Docs**: [docs.render.com](https://docs.render.com)
 - **🤖 Gemini AI**: [makersuite.google.com](https://makersuite.google.com)
-- **🏛️ **: [kapitalbank.az](https://kapitalbank.az)
 - **💱 CBAR**: [cbar.az](https://cbar.az)
 
 ---
@@ -383,6 +382,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**🚀 Deploy your  AI Assistant now and start helping people find banking services in Azerbaijan!**
+**🚀 Deploy your AI Assistant now and start helping people find banking services in Azerbaijan!**
 
 *Built with ❤️ using FastAPI, Gemini AI, and real Azerbaijani banking APIs*
