@@ -1,7 +1,7 @@
 // Service Worker for  AI Assistant
 // Light Mode Only - PWA Support with Offline Functionality
 
-const CACHE_NAME = 'kapital-bank-v1.0.0';
+const CACHE_NAME = 'v1.0.0';
 const OFFLINE_URL = '/offline';
 
 // Resources to cache for offline functionality
@@ -84,8 +84,8 @@ self.addEventListener('activate', event => {
           cacheNames
             .filter(cacheName => {
               return cacheName !== CACHE_NAME && 
-                     cacheName !== CACHE_NAME + '-api' &&
-                     cacheName.startsWith('kapital-bank-');
+                     cacheName !== CACHE_NAME + 'api' &&
+                     cacheName.startsWith('bank');
             })
             .map(cacheName => {
               console.log('Deleting old cache:', cacheName);
@@ -190,7 +190,7 @@ async function handleApiRequest(request) {
     
     if (response.ok) {
       // Cache successful API responses
-      const apiCache = await caches.open(CACHE_NAME + '-api');
+      const apiCache = await caches.open(CACHE_NAME + 'api');
       
       // Only cache GET requests for certain endpoints
       if (shouldCacheApiResponse(url.pathname)) {
@@ -489,7 +489,7 @@ self.addEventListener('push', event => {
       body: data.body || 'New notification from ',
       icon: '/static/favicon_io/android-chrome-192x192.png',
       badge: '/static/favicon_io/favicon-32x32.png',
-      tag: data.tag || 'kapital-bank-notification',
+      tag: data.tag || '-bank-notification',
       data: data.data || {},
       requireInteraction: false,
       silent: false
