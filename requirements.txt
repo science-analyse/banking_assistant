@@ -1,4 +1,4 @@
-# Essential packages for  AI Assistant
+# Essential packages for AI Assistant
 
 # Web Framework
 fastapi==0.115.9
@@ -9,7 +9,8 @@ python-multipart==0.0.20
 # AI Service - Updated to latest version
 google-generativeai==0.8.3
 
-# HTTP & Networking
+# HTTP & Networking - Added missing httpx
+httpx==0.27.2
 aiohttp==3.12.7
 aiofiles==24.1.0
 
@@ -21,3 +22,6 @@ starlette==0.45.3
 
 # Production Server
 gunicorn==21.2.0
+
+# Additional dependencies for caching and utilities
+cachetools==5.5.0
