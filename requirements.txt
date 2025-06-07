@@ -1,24 +1,23 @@
-# Enhanced RAG Banking Assistant Dependencies
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+jinja2==3.1.2
 
-# Core web framework
-fastapi==0.115.9
-uvicorn[standard]==0.32.1
-jinja2==3.1.4
-python-multipart==0.0.12
-aiofiles==24.1.0
+# HTTP client for external APIs
+httpx==0.25.2
 
-# HTTP client for API calls
-aiohttp==3.11.10
-httpx==0.28.1
+# AI integration (optional)
+google-generativeai==0.3.2
 
-# Google Gemini AI
-google-generativeai==0.8.3
+# Caching
+cachetools==5.3.2
 
-# Data processing
-pydantic==2.10.3
-python-dotenv==1.0.1
+# Data validation
+pydantic==2.5.0
 
-# Optional: Enhanced features
-# langchain==0.3.10  # For advanced RAG capabilities
-# chromadb==0.5.23   # For vector database
-# sentence-transformers==3.3.1  # For embeddings
+# Development dependencies (optional)
+python-dotenv==1.0.0
+
+# Production server
+gunicorn==21.2.0
