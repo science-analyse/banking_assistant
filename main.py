@@ -31,8 +31,9 @@ async def lifespan(app: FastAPI):
     api_key = os.getenv("GEMINI_API_KEY")
     if api_key:
         genai.configure(api_key=api_key)
-        app_state['ai_model'] = genai.GenerativeModel('gemini-pro')
-        logger.info("Gemini AI initialized")
+        # Updated model name - gemini-pro is deprecated
+        app_state['ai_model'] = genai.GenerativeModel('gemini-1.5-flash')
+        logger.info("Gemini AI initialized with gemini-1.5-flash")
     else:
         logger.warning("GEMINI_API_KEY not found. AI features will be limited.")
         app_state['ai_model'] = None
@@ -413,12 +414,25 @@ async def get_current_currency_rates():
                 
                 for currency_elem in root.findall('.//Valute'):
                     code = currency_elem.get('Code', '')
-                    nominal = int(currency_elem.find('Nominal').text or 1)
-                    value = float(currency_elem.find('Value').text or 0)
+                    nominal_text = currency_elem.find('Nominal').text or '1'
+                    value_text = currency_elem.find('Value').text or '0'
                     
-                    if code and value > 0:
-                        rate_per_unit = value / nominal
-                        rates[code] = rate_per_unit
+                    # Skip entries with non-numeric values like '1 t.u.'
+                    try:
+                        # Clean and parse nominal - handle '1 t.u.' cases
+                        if 't.u.' in nominal_text or 't.u' in nominal_text:
+                            continue  # Skip these entries
+                        
+                        nominal = int(nominal_text)
+                        value = float(value_text)
+                        
+                        if code and value > 0 and nominal > 0:
+                            rate_per_unit = value / nominal
+                            rates[code] = rate_per_unit
+                            
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Skipping currency {code} due to parsing error: {e}")
+                        continue
                 
                 return {
                     "rates": rates,
@@ -482,8 +496,8 @@ async def process_chat_message(message: str, language: str, user_location: list 
         # Build AI prompt
         prompt = build_ai_prompt(message, language, intent, context_data, user_location)
         
-        # Generate response
-        response = await ai_model.generate_content_async(prompt)
+        # Generate response with updated method
+        response = ai_model.generate_content(prompt)
         
         return {
             "response": response.text,
