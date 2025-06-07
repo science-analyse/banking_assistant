@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Kapital Bank AI Assistant",
+    title="AI Assistant",
     description="AI-powered banking location finder and currency intelligence for Azerbaijan",
     version="1.0.0",
     docs_url="/docs",
@@ -249,7 +249,7 @@ async def get_locations(
     type: Optional[str] = None,
     radius: Optional[float] = 5.0
 ):
-    """Get Kapital Bank branches and ATMs"""
+    """Get branches and ATMs"""
     cache_key = f"locations_{lat}_{lon}_{city}_{type}_{radius}"
     
     if cache_key in locations_cache:
@@ -260,7 +260,7 @@ async def get_locations(
         all_locations = [
             {
                 "id": 1,
-                "name": "Kapital Bank - Nizami Branch",
+                "name": "- Nizami Branch",
                 "type": "branch",
                 "address": "Nizami Street 96, Baku",
                 "latitude": 40.3777,
@@ -271,7 +271,7 @@ async def get_locations(
             },
             {
                 "id": 2,
-                "name": "Kapital Bank ATM - Fountain Square",
+                "name": "ATM - Fountain Square",
                 "type": "atm",
                 "address": "Fountain Square, Baku",
                 "latitude": 40.3656,
@@ -282,7 +282,7 @@ async def get_locations(
             },
             {
                 "id": 3,
-                "name": "Kapital Bank - Ganjlik Branch",
+                "name": "- Ganjlik Branch",
                 "type": "branch",
                 "address": "Ganjlik Avenue 3199, Baku",
                 "latitude": 40.4093,
@@ -293,7 +293,7 @@ async def get_locations(
             },
             {
                 "id": 4,
-                "name": "Kapital Bank ATM - Port Baku Mall",
+                "name": "ATM - Port Baku Mall",
                 "type": "atm", 
                 "address": "Port Baku Mall, Baku",
                 "latitude": 40.3656,
@@ -304,7 +304,7 @@ async def get_locations(
             },
             {
                 "id": 5,
-                "name": "Kapital Bank - Sumgayit Branch",
+                "name": "- Sumgayit Branch",
                 "type": "branch",
                 "address": "Nizami Street 15, Sumgayit",
                 "latitude": 40.5892,
@@ -315,7 +315,7 @@ async def get_locations(
             },
             {
                 "id": 6,
-                "name": "Kapital Bank ATM - 28 May Metro",
+                "name": "ATM - 28 May Metro",
                 "type": "atm",
                 "address": "28 May Metro Station, Baku",
                 "latitude": 40.3986,
@@ -326,7 +326,7 @@ async def get_locations(
             },
             {
                 "id": 7,
-                "name": "Kapital Bank - Sahil Branch",
+                "name": "- Sahil Branch",
                 "type": "branch",
                 "address": "Bulvar, Baku",
                 "latitude": 40.3606,
@@ -407,7 +407,7 @@ Current popular rates (CBAR reference):
 Would you like me to convert a specific amount or show you more currencies?"""
         
         elif any(word in user_msg for word in ["branch", "atm", "location", "address"]):
-            response = """I can help you find Kapital Bank branches and ATMs!
+            response = """I can help you find branches and ATMs!
 
 We have locations throughout Azerbaijan:
 • **Branches**: Full service locations for deposits, loans, currency exchange
@@ -421,7 +421,7 @@ Popular locations in Baku:
 Would you like me to find the nearest location to you?"""
         
         elif any(word in user_msg for word in ["loan", "credit", "mortgage"]):
-            response = """Kapital Bank offers various loan products:
+            response = """offers various loan products:
 
 • **Personal Loans**: For your individual needs
 • **Mortgage Loans**: Home financing solutions  
@@ -433,7 +433,7 @@ For detailed information about loan rates, terms, and application process, I rec
 Would you like me to help you find the nearest branch?"""
         
         elif any(word in user_msg for word in ["account", "deposit", "saving"]):
-            response = """Kapital Bank provides comprehensive account services:
+            response = """provides comprehensive account services:
 
 • **Current Accounts**: For daily banking needs
 • **Savings Accounts**: Earn interest on your deposits
@@ -449,7 +449,7 @@ All accounts include:
 Visit any branch to open an account today!"""
         
         else:
-            response = """Hello! I'm your Kapital Bank AI assistant. I can help you with:
+            response = """Hello! I'm your AI assistant. I can help you with:
 
 🏦 **Branch & ATM locations** - Find the nearest services
 💱 **Currency rates** - Current CBAR reference rates and conversions  
@@ -492,7 +492,7 @@ async def home(request: Request):
         
         return templates.TemplateResponse("index.html", {
             "request": request,
-            "title": "Kapital Bank AI Assistant",
+            "title": "AI Assistant",
             "currency_rates": currency_rates
         })
     except Exception as e:
@@ -641,7 +641,7 @@ async def server_error_handler(request: Request, exc):
 @app.on_event("startup")
 async def startup_event():
     """Initialize app on startup"""
-    logger.info("Kapital Bank AI Assistant starting up...")
+    logger.info("AI Assistant starting up...")
     
     # Warm up currency cache
     try:
@@ -650,13 +650,13 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Failed to warm up currency cache: {e}")
     
-    logger.info("Kapital Bank AI Assistant ready!")
+    logger.info("AI Assistant ready!")
 
 # Shutdown event  
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    logger.info("Kapital Bank AI Assistant shutting down...")
+    logger.info("AI Assistant shutting down...")
 
 if __name__ == "__main__":
     import uvicorn
