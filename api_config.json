@@ -1,0 +1,347 @@
+{
+  "description": "API Configuration for RAG Banking Assistant - Based on actual db/ folder structure",
+  
+  "external_apis": {
+    "cbar_currency_rates": {
+      "name": "Central Bank of Azerbaijan Exchange Rates",
+      "url": "https://www.cbar.az/currencies/{date}.xml",
+      "method": "GET",
+      "format": "xml",
+      "cache_duration": 3600,
+      "description": "Official daily exchange rates from CBAR",
+      "parameters": {
+        "date": {
+          "type": "string", 
+          "format": "dd.mm.yyyy",
+          "required": true,
+          "example": "07.06.2025"
+        }
+      },
+      "fallback_file": "db/cbarrates.json",
+      "response_structure": {
+        "xml_root": "ValCurs",
+        "currencies": "ValCurs/ValType/Valute",
+        "fields": {
+          "code": "@Code",
+          "nominal": "Nominal",
+          "name": "Name", 
+          "value": "Value"
+        }
+      }
+    }
+  },
+  
+  "local_data_structure": {
+    "db/cbarrates.json": {
+      "description": "CBAR currency rates fallback data",
+      "structure": {
+        "ValCurs": {
+          "Date": "string (dd.mm.yyyy)",
+          "Name": "string",
+          "Description": "string",
+          "ValType": [
+            {
+              "Type": "string",
+              "Valute": [
+                {
+                  "Code": "string (USD, EUR, etc.)",
+                  "Nominal": "string (1, 100, etc.)",
+                  "Name": "string (currency name in Azerbaijani)",
+                  "Value": "string (rate in AZN)"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "example_currencies": [
+        {
+          "Code": "USD",
+          "Nominal": "1", 
+          "Name": "1 ABŞ dolları",
+          "Value": "1.7000"
+        },
+        {
+          "Code": "EUR",
+          "Nominal": "1",
+          "Name": "1 Euro", 
+          "Value": "1.8500"
+        },
+        {
+          "Code": "RUB",
+          "Nominal": "100",
+          "Name": "100 Rusiya rublu",
+          "Value": "2.1438"
+        }
+      ]
+    },
+    
+    "db/branch.json": {
+      "description": "Bank branch locations with working hours",
+      "structure": {
+        "branches": [
+          {
+            "id": "number",
+            "name": "string",
+            "address": "string",
+            "latitude": "number (optional)",
+            "longitude": "number (optional)",
+            "phone": "string (optional)",
+            "working_days": [
+              {
+                "id": "number",
+                "day_of_week": "number (1=Monday, 7=Sunday)",
+                "is_open": "number (0/1)",
+                "open_time": "string (HH:MM or null)",
+                "close_time": "string (HH:MM or null)",
+                "has_customer_service": "boolean/null",
+                "customer_open_time": "string (HH:MM or null)",
+                "customer_close_time": "string (HH:MM or null)",
+                "location_id": "number",
+                "day_of_week_name": "string (in Azerbaijani)"
+              }
+            ]
+          }
+        ]
+      },
+      "day_mapping": {
+        "1": "Bazar ertəsi (Monday)",
+        "2": "Çərşənbə axşamı (Tuesday)", 
+        "3": "Çərşənbə (Wednesday)",
+        "4": "Cümə axşamı (Thursday)",
+        "5": "Cümə (Friday)",
+        "6": "Şənbə (Saturday)",
+        "7": "Bazar (Sunday)"
+      }
+    }
+  },
+  
+  "rag_system_configuration": {
+    "intent_classification": {
+      "currency_inquiry": {
+        "keywords": ["rate", "exchange", "currency", "dollar", "euro", "manat", "rub", "try", "gbp", "convert"],
+        "data_sources": ["cbar_api", "db/cbarrates.json"],
+        "response_includes": ["current_rates", "conversion", "source_info"]
+      },
+      "location_inquiry": {
+        "keywords": ["branch", "atm", "location", "near", "find", "where", "address"],
+        "data_sources": ["db/branch.json"],
+        "response_includes": ["locations", "working_hours", "contact_info"]
+      },
+      "service_inquiry": {
+        "keywords": ["service", "hours", "open", "close", "working", "time"],
+        "data_sources": ["db/branch.json"],
+        "response_includes": ["working_hours", "services_available"]
+      },
+      "banking_general": {
+        "keywords": ["bank", "banking", "account", "deposit", "withdraw"],
+        "data_sources": ["cbar_api", "db/cbarrates.json", "db/branch.json"],
+        "response_includes": ["general_info", "rates", "locations"]
+      }
+    },
+    
+    "ai_prompt_templates": {
+      "currency_prompt": "You are a banking assistant. User asked: '{message}'. Current exchange rates from {source} ({date}): {currency_data}. Respond in {language}. Be specific about rates and include source information.",
+      
+      "location_prompt": "User asked: '{message}'. Available branch data includes working hours and locations. Respond in {language}. Help them find relevant banking services.",
+      
+      "general_prompt": "User asked: '{message}'. You have access to currency rates and branch information. Respond helpfully in {language}."
+    },
+    
+    "response_formatting": {
+      "currency_response": {
+        "include_date": true,
+        "include_source": true,
+        "max_currencies_shown": 10,
+        "format_rates": "1 {currency} = {value} AZN"
+      },
+      "location_response": {
+        "include_hours": true,
+        "include_contact": true,
+        "format_hours": "{day}: {open}-{close}"
+      }
+    }
+  },
+  
+  "caching_strategy": {
+    "currency_rates": {
+      "duration_seconds": 3600,
+      "refresh_on_api_failure": true,
+      "fallback_to_local": true
+    },
+    "branch_data": {
+      "duration_seconds": 1800,
+      "refresh_on_api_failure": false,
+      "use_local_only": true
+    }
+  },
+  
+  "api_integration_roadmap": {
+    "phase_1": {
+      "status": "current",
+      "description": "Use CBAR API for currency, local files for branches",
+      "apis": ["cbar_currency_rates"],
+      "local_files": ["db/cbarrates.json", "db/branch.json"]
+    },
+    "phase_2": {
+      "status": "planned",
+      "description": "Add real bank location APIs",
+      "apis": ["cbar_currency_rates", "bank_locations_api"],
+      "requirements": [
+        "Partner with Azerbaijani banks for location APIs",
+        "Implement geolocation filtering",
+        "Add real-time ATM status"
+      ]
+    },
+    "phase_3": {
+      "status": "future",
+      "description": "Full integration with banking services",
+      "apis": ["cbar_currency_rates", "bank_locations_api", "banking_services_api"],
+      "features": [
+        "Real-time ATM cash availability",
+        "Queue information for branches", 
+        "Service-specific hours (loans, deposits, etc.)",
+        "Multi-bank integration"
+      ]
+    }
+  },
+  
+  "data_quality_checks": {
+    "currency_data": {
+      "required_fields": ["Code", "Value", "Nominal"],
+      "validation_rules": {
+        "Code": "3-letter currency code",
+        "Value": "positive number as string",
+        "Nominal": "positive integer as string"
+      },
+      "fallback_currencies": ["USD", "EUR", "RUB", "TRY", "GBP"]
+    },
+    "branch_data": {
+      "required_fields": ["id", "name", "working_days"],
+      "validation_rules": {
+        "working_days": "array with 7 day objects",
+        "day_of_week": "integer 1-7",
+        "is_open": "0 or 1"
+      }
+    }
+  },
+  
+  "error_handling": {
+    "api_timeout": {
+      "duration": 10,
+      "action": "fallback_to_cache_or_local"
+    },
+    "api_unavailable": {
+      "action": "use_local_data",
+      "notify_user": true,
+      "message_templates": {
+        "en": "Using cached data. Live rates may be different.",
+        "az": "Keşlənmiş məlumatlar istifadə olunur. Canlı məzənnələr fərqli ola bilər."
+      }
+    },
+    "data_parsing_error": {
+      "action": "use_minimal_fallback",
+      "log_error": true
+    }
+  },
+  
+  "monitoring": {
+    "health_checks": [
+      {
+        "name": "CBAR API availability",
+        "url": "https://www.cbar.az/currencies/07.06.2025.xml",
+        "interval_minutes": 30,
+        "timeout_seconds": 10
+      }
+    ],
+    "metrics_to_track": [
+      "api_response_time",
+      "cache_hit_rate", 
+      "fallback_usage_count",
+      "user_query_intents",
+      "successful_ai_responses"
+    ],
+    "alerting": {
+      "api_down_threshold": "3 consecutive failures",
+      "response_time_threshold": "5 seconds",
+      "error_rate_threshold": "10% over 1 hour"
+    }
+  },
+  
+  "deployment_configuration": {
+    "environment_variables": {
+      "required": {
+        "GEMINI_API_KEY": "Google AI Studio API key for Gemini model"
+      },
+      "optional": {
+        "LOG_LEVEL": "INFO|DEBUG|WARNING|ERROR",
+        "CACHE_DURATION": "Cache duration in seconds (default: 300)",
+        "MAX_CURRENCIES_DISPLAY": "Max currencies to show (default: 10)"
+      }
+    },
+    "file_requirements": {
+      "directories": ["db/", "templates/", "static/"],
+      "critical_files": ["db/cbarrates.json", "db/branch.json"],
+      "template_files": ["templates/chat.html", "templates/index.html"]
+    }
+  },
+  
+  "usage_examples": {
+    "currency_queries": [
+      "What's the current USD rate?",
+      "USD məzənnəsi nədir?",
+      "Convert 100 EUR to AZN",
+      "100 avro neçə manatdır?",
+      "Show me all exchange rates",
+      "Bütün məzənnələri göstər"
+    ],
+    "location_queries": [
+      "Find bank branches near me",
+      "Yaxın bank filialları",
+      "What are the banking hours?",
+      "Bank saatları nədir?", 
+      "ATM locations in Baku",
+      "Bakıda bankomat yerləri"
+    ],
+    "general_queries": [
+      "Help with banking services",
+      "Bank xidmətləri barədə kömək",
+      "What can you help me with?",
+      "Nə ilə kömək edə bilərsən?"
+    ]
+  },
+  
+  "localization": {
+    "supported_languages": ["en", "az"],
+    "default_language": "en",
+    "currency_names": {
+      "mapping_source": "CBAR provides names in Azerbaijani",
+      "example": {
+        "USD": "ABŞ dolları",
+        "EUR": "Euro",
+        "RUB": "Rusiya rublu",
+        "TRY": "Türk lirəsi"
+      }
+    },
+    "day_names": {
+      "az": {
+        "1": "Bazar ertəsi",
+        "2": "Çərşənbə axşamı", 
+        "3": "Çərşənbə",
+        "4": "Cümə axşamı",
+        "5": "Cümə",
+        "6": "Şənbə",
+        "7": "Bazar"
+      },
+      "en": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday", 
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      }
+    }
+  }
+}
