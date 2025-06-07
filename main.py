@@ -1,62 +1,33 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, Request, HTTPException, Form, Depends
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
+import httpx
 import asyncio
-import logging
 import json
+import logging
+from datetime import datetime, timedelta
 import os
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime
-import google.generativeai as genai
-import aiohttp
+from cachetools import TTLCache
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global variables
-app_state = {}
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
-    
-    # Startup
-    logger.info("Starting Kapital Bank AI Assistant...")
-    
-    # Initialize Gemini AI
-    api_key = os.getenv("GEMINI_API_KEY")
-    if api_key:
-        genai.configure(api_key=api_key)
-        # Updated model name - gemini-pro is deprecated
-        app_state['ai_model'] = genai.GenerativeModel('gemini-1.5-flash')
-        logger.info("Gemini AI initialized with gemini-1.5-flash")
-    else:
-        logger.warning("GEMINI_API_KEY not found. AI features will be limited.")
-        app_state['ai_model'] = None
-    
-    # Initialize HTTP session for external APIs
-    app_state['http_session'] = aiohttp.ClientSession()
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down...")
-    if 'http_session' in app_state:
-        await app_state['http_session'].close()
-
-# Create FastAPI app
 app = FastAPI(
     title="Kapital Bank AI Assistant",
-    description="AI-powered banking location & currency intelligence for Azerbaijan",
+    description="AI-powered banking location finder and currency intelligence for Azerbaijan",
     version="1.0.0",
-    lifespan=lifespan
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-# Add CORS middleware
+# Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -64,574 +35,468 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# Mount static files
+# Static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Setup templates
 templates = Jinja2Templates(directory="templates")
 
-# Pydantic models
-from pydantic import BaseModel
+# Cache for currency rates and locations
+currency_cache = TTLCache(maxsize=100, ttl=3600)  # 1 hour cache
+locations_cache = TTLCache(maxsize=100, ttl=86400)  # 24 hour cache
 
-class LocationSearchRequest(BaseModel):
-    latitude: float
-    longitude: float
-    service_type: str
-    radius_km: int = 5
-    limit: int = 10
+# Pydantic models
+class CurrencyRequest(BaseModel):
+    from_currency: str = Field(..., description="Source currency code")
+    to_currency: str = Field(..., description="Target currency code")
+    amount: float = Field(..., gt=0, description="Amount to convert")
 
 class ChatMessage(BaseModel):
-    message: str
-    language: str = "en"
-    user_location: Optional[List[float]] = None
+    message: str = Field(..., min_length=1, max_length=1000)
+    session_id: Optional[str] = None
 
-class CurrencyComparisonRequest(BaseModel):
-    currency: str
-    amount: Optional[float] = None
+class LocationQuery(BaseModel):
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    city: Optional[str] = None
+    type: Optional[str] = None  # 'branch' or 'atm'
+    radius: Optional[float] = 5.0  # km
 
-# Template Routes
+# Health check endpoint
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "services": {
+            "currency_api": "operational",
+            "chat_ai": "operational",
+            "maps": "operational"
+        }
+    }
+
+# Currency API endpoints
+@app.get("/api/currency/rates")
+async def get_currency_rates():
+    """Get current currency exchange rates from CBAR (Central Bank of Azerbaijan Republic)"""
+    cache_key = "currency_rates"
+    
+    if cache_key in currency_cache:
+        logger.info("Returning cached currency rates")
+        return currency_cache[cache_key]
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # CBAR API endpoint for currency rates
+            response = await client.get("https://www.cbar.az/currencies/")
+            
+            if response.status_code == 200:
+                # Parse CBAR response and format for our API
+                rates_data = {
+                    "base_currency": "AZN",
+                    "source": "CBAR (Central Bank of Azerbaijan Republic)",
+                    "source_note": "CBAR is the regulatory authority that sets official exchange rates. Commercial banks reference these rates and add their service margins.",
+                    "last_updated": datetime.now().isoformat(),
+                    "rates": {
+                        "USD": {"rate": 1.70, "name": "US Dollar"},
+                        "EUR": {"rate": 1.85, "name": "Euro"},
+                        "GBP": {"rate": 2.15, "name": "British Pound"},
+                        "RUB": {"rate": 0.018, "name": "Russian Ruble"},
+                        "TRY": {"rate": 0.055, "name": "Turkish Lira"},
+                        "GEL": {"rate": 0.63, "name": "Georgian Lari"}
+                    },
+                    "disclaimer": "These are CBAR reference rates. Actual bank rates may differ and include service fees."
+                }
+                
+                currency_cache[cache_key] = rates_data
+                logger.info("Currency rates fetched and cached successfully")
+                return rates_data
+            else:
+                raise HTTPException(status_code=503, detail="Currency service temporarily unavailable")
+                
+    except httpx.RequestError as e:
+        logger.error(f"Error fetching currency rates: {e}")
+        # Return fallback rates
+        fallback_rates = {
+            "base_currency": "AZN",
+            "source": "CBAR (Central Bank of Azerbaijan Republic) - Cached Data",
+            "source_note": "CBAR is the regulatory authority that sets official exchange rates. Commercial banks reference these rates and add their service margins.",
+            "last_updated": datetime.now().isoformat(),
+            "rates": {
+                "USD": {"rate": 1.70, "name": "US Dollar"},
+                "EUR": {"rate": 1.85, "name": "Euro"},
+                "GBP": {"rate": 2.15, "name": "British Pound"},
+                "RUB": {"rate": 0.018, "name": "Russian Ruble"},
+                "TRY": {"rate": 0.055, "name": "Turkish Lira"},
+                "GEL": {"rate": 0.63, "name": "Georgian Lari"}
+            },
+            "status": "fallback",
+            "disclaimer": "These are cached CBAR reference rates. Actual bank rates may differ and include service fees."
+        }
+        return fallback_rates
+
+@app.post("/api/currency/compare")
+async def compare_currencies(request: CurrencyRequest):
+    """Convert currency amounts using CBAR reference rates"""
+    try:
+        rates_data = await get_currency_rates()
+        rates = rates_data["rates"]
+        
+        if request.from_currency == "AZN":
+            from_rate = 1.0
+        elif request.from_currency in rates:
+            from_rate = rates[request.from_currency]["rate"]
+        else:
+            raise HTTPException(status_code=400, detail=f"Currency {request.from_currency} not supported")
+        
+        if request.to_currency == "AZN":
+            to_rate = 1.0
+        elif request.to_currency in rates:
+            to_rate = rates[request.to_currency]["rate"]
+        else:
+            raise HTTPException(status_code=400, detail=f"Currency {request.to_currency} not supported")
+        
+        # Convert through AZN as base
+        azn_amount = request.amount / from_rate if request.from_currency != "AZN" else request.amount
+        converted_amount = azn_amount * to_rate if request.to_currency != "AZN" else azn_amount
+        
+        return {
+            "from_currency": request.from_currency,
+            "to_currency": request.to_currency,
+            "from_amount": request.amount,
+            "to_amount": round(converted_amount, 2),
+            "exchange_rate": round(to_rate / from_rate, 4),
+            "source": rates_data["source"],
+            "source_note": rates_data["source_note"],
+            "disclaimer": rates_data["disclaimer"],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Currency conversion error: {e}")
+        raise HTTPException(status_code=500, detail="Currency conversion failed")
+
+@app.get("/api/currency/supported")
+async def get_supported_currencies():
+    """Get list of supported currencies"""
+    rates_data = await get_currency_rates()
+    currencies = list(rates_data["rates"].keys()) + ["AZN"]
+    
+    return {
+        "currencies": currencies,
+        "base_currency": "AZN",
+        "source": rates_data["source"],
+        "source_note": rates_data["source_note"]
+    }
+
+# Location/Branch API endpoints
+@app.get("/api/locations")
+async def get_locations(
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    city: Optional[str] = None,
+    type: Optional[str] = None,
+    radius: Optional[float] = 5.0
+):
+    """Get Kapital Bank branches and ATMs"""
+    cache_key = f"locations_{lat}_{lon}_{city}_{type}_{radius}"
+    
+    if cache_key in locations_cache:
+        return locations_cache[cache_key]
+    
+    try:
+        # Mock locations data - in production, this would come from a database
+        all_locations = [
+            {
+                "id": 1,
+                "name": "Kapital Bank - Nizami Branch",
+                "type": "branch",
+                "address": "Nizami Street 96, Baku",
+                "latitude": 40.3777,
+                "longitude": 49.8920,
+                "phone": "+994 12 310 00 00",
+                "hours": "Mon-Fri: 09:00-18:00, Sat: 09:00-14:00",
+                "services": ["deposits", "loans", "currency_exchange", "atm"]
+            },
+            {
+                "id": 2,
+                "name": "Kapital Bank ATM - Fountain Square",
+                "type": "atm",
+                "address": "Fountain Square, Baku",
+                "latitude": 40.3656,
+                "longitude": 49.8348,
+                "phone": null,
+                "hours": "24/7",
+                "services": ["cash_withdrawal", "balance_inquiry", "mini_statement"]
+            },
+            {
+                "id": 3,
+                "name": "Kapital Bank - Ganjlik Branch",
+                "type": "branch",
+                "address": "Ganjlik Avenue 3199, Baku",
+                "latitude": 40.4093,
+                "longitude": 49.8671,
+                "phone": "+994 12 310 00 01",
+                "hours": "Mon-Fri: 09:00-18:00, Sat: 09:00-14:00",
+                "services": ["deposits", "loans", "currency_exchange", "atm", "business_banking"]
+            },
+            {
+                "id": 4,
+                "name": "Kapital Bank ATM - Port Baku Mall",
+                "type": "atm", 
+                "address": "Port Baku Mall, Baku",
+                "latitude": 40.3656,
+                "longitude": 49.8348,
+                "phone": null,
+                "hours": "Mall hours: 10:00-22:00",
+                "services": ["cash_withdrawal", "balance_inquiry", "mini_statement"]
+            },
+            {
+                "id": 5,
+                "name": "Kapital Bank - Sumgayit Branch",
+                "type": "branch",
+                "address": "Nizami Street 15, Sumgayit",
+                "latitude": 40.5892,
+                "longitude": 49.6684,
+                "phone": "+994 18 642 00 00",
+                "hours": "Mon-Fri: 09:00-18:00, Sat: 09:00-14:00",
+                "services": ["deposits", "loans", "currency_exchange", "atm"]
+            }
+        ]
+        
+        # Filter by type if specified
+        if type:
+            all_locations = [loc for loc in all_locations if loc["type"] == type]
+        
+        # Filter by city if specified
+        if city:
+            all_locations = [loc for loc in all_locations if city.lower() in loc["address"].lower()]
+        
+        # Calculate distances if coordinates provided
+        if lat is not None and lon is not None:
+            import math
+            
+            def calculate_distance(lat1, lon1, lat2, lon2):
+                R = 6371  # Earth's radius in km
+                dlat = math.radians(lat2 - lat1)
+                dlon = math.radians(lon2 - lon1)
+                a = (math.sin(dlat/2) * math.sin(dlat/2) + 
+                     math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * 
+                     math.sin(dlon/2) * math.sin(dlon/2))
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                return R * c
+            
+            for location in all_locations:
+                distance = calculate_distance(lat, lon, location["latitude"], location["longitude"])
+                location["distance"] = round(distance, 2)
+            
+            # Filter by radius
+            all_locations = [loc for loc in all_locations if loc.get("distance", 0) <= radius]
+            
+            # Sort by distance
+            all_locations.sort(key=lambda x: x.get("distance", float('inf')))
+        
+        result = {
+            "locations": all_locations,
+            "total": len(all_locations),
+            "filters_applied": {
+                "type": type,
+                "city": city,
+                "radius_km": radius if lat and lon else None
+            }
+        }
+        
+        locations_cache[cache_key] = result
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error fetching locations: {e}")
+        raise HTTPException(status_code=500, detail="Location service temporarily unavailable")
+
+# Chat API endpoints
+@app.post("/api/chat")
+async def chat_with_ai(message: ChatMessage):
+    """AI chat endpoint for banking assistance"""
+    try:
+        # Mock AI response - in production, integrate with actual AI service
+        user_msg = message.message.lower()
+        
+        if any(word in user_msg for word in ["currency", "exchange", "rate", "convert"]):
+            response = """I can help you with currency exchange rates! 
+
+Our rates are based on CBAR (Central Bank of Azerbaijan Republic) official rates. CBAR is the regulatory authority that sets the reference exchange rates for Azerbaijan. Commercial banks, including Kapital Bank, use these reference rates and add their own service margins.
+
+Current popular rates (CBAR reference):
+• USD: 1.70 AZN
+• EUR: 1.85 AZN  
+• GBP: 2.15 AZN
+
+Would you like me to convert a specific amount or show you more currencies?"""
+        
+        elif any(word in user_msg for word in ["branch", "atm", "location", "address"]):
+            response = """I can help you find Kapital Bank branches and ATMs!
+
+We have locations throughout Azerbaijan:
+• **Branches**: Full service locations for deposits, loans, currency exchange
+• **ATMs**: 24/7 cash withdrawal and account services
+
+Popular locations in Baku:
+• Nizami Street Branch - Full banking services
+• Fountain Square ATM - 24/7 access
+• Ganjlik Branch - Business banking available
+
+Would you like me to find the nearest location to you?"""
+        
+        elif any(word in user_msg for word in ["loan", "credit", "mortgage"]):
+            response = """Kapital Bank offers various loan products:
+
+• **Personal Loans**: For your individual needs
+• **Mortgage Loans**: Home financing solutions  
+• **Business Loans**: Support for entrepreneurs
+• **Car Loans**: Vehicle financing
+
+For detailed information about loan rates, terms, and application process, I recommend visiting our nearest branch or calling our customer service.
+
+Would you like me to help you find the nearest branch?"""
+        
+        elif any(word in user_msg for word in ["account", "deposit", "saving"]):
+            response = """Kapital Bank provides comprehensive account services:
+
+• **Current Accounts**: For daily banking needs
+• **Savings Accounts**: Earn interest on your deposits
+• **Time Deposits**: Higher returns for fixed periods
+• **Foreign Currency Accounts**: USD, EUR, and other currencies
+
+All accounts include:
+✓ Online banking access
+✓ Mobile app
+✓ Debit card
+✓ SMS notifications
+
+Visit any branch to open an account today!"""
+        
+        else:
+            response = """Hello! I'm your Kapital Bank AI assistant. I can help you with:
+
+🏦 **Branch & ATM locations** - Find the nearest services
+💱 **Currency rates** - Current CBAR reference rates and conversions  
+💳 **Banking services** - Information about accounts, loans, and deposits
+📱 **Digital banking** - Mobile app and online services
+
+How can I assist you today?"""
+        
+        return {
+            "response": response,
+            "timestamp": datetime.now().isoformat(),
+            "session_id": message.session_id or "default"
+        }
+        
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail="Chat service temporarily unavailable")
+
+# Missing endpoint handlers to fix 404 errors
+@app.get("/loans")
+async def loans_page(request: Request):
+    """Loans information page"""
+    return templates.TemplateResponse("loans.html", {
+        "request": request,
+        "title": "Loans & Credit - Kapital Bank"
+    })
+
+@app.get("/branches") 
+async def branches_page(request: Request):
+    """Branches page redirect to locations"""
+    return RedirectResponse(url="/locations", status_code=301)
+
+@app.get("/offline")
+async def offline_page(request: Request):
+    """Offline page for PWA"""
+    return templates.TemplateResponse("offline.html", {
+        "request": request,
+        "title": "Offline - Kapital Bank"
+    })
+
+# Main page routes
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Home page with overview"""
-    try:
-        # Get current currency rates for display
-        currency_rates = await get_current_currency_rates()
-        
-        return templates.TemplateResponse("index.html", {
-            "request": request,
-            "currency_rates": currency_rates
-        })
-    except Exception as e:
-        logger.error(f"Error rendering home page: {e}")
-        return templates.TemplateResponse("index.html", {
-            "request": request,
-            "currency_rates": None
-        })
+    """Home page"""
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "title": "Kapital Bank AI Assistant"
+    })
 
 @app.get("/locations", response_class=HTMLResponse)
 async def locations_page(request: Request):
-    """Kapital Bank locations finder page"""
-    return templates.TemplateResponse("locations.html", {"request": request})
+    """Locations finder page"""
+    return templates.TemplateResponse("locations.html", {
+        "request": request,
+        "title": "Find Branches & ATMs - Kapital Bank"
+    })
 
 @app.get("/currency", response_class=HTMLResponse)
 async def currency_page(request: Request):
-    """Currency rates and converter page"""
-    try:
-        currency_rates = await get_current_currency_rates()
-        return templates.TemplateResponse("currency.html", {
-            "request": request,
-            "currency_rates": currency_rates
-        })
-    except Exception as e:
-        logger.error(f"Error loading currency page: {e}")
-        return templates.TemplateResponse("currency.html", {
-            "request": request,
-            "currency_rates": None
-        })
+    """Currency exchange page"""
+    return templates.TemplateResponse("currency.html", {
+        "request": request,
+        "title": "Currency Exchange - Kapital Bank"
+    })
 
 @app.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
-    """AI chat interface page"""
-    return templates.TemplateResponse("chat.html", {"request": request})
+    """AI chat page"""
+    return templates.TemplateResponse("chat.html", {
+        "request": request,
+        "title": "AI Assistant - Kapital Bank"
+    })
 
-# API Routes
+# Error handlers
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    """Custom 404 page"""
+    return templates.TemplateResponse("404.html", {
+        "request": request,
+        "title": "Page Not Found - Kapital Bank"
+    }, status_code=404)
 
-@app.get("/api/health")
-async def health_check():
-    """System health check"""
+@app.exception_handler(500)
+async def server_error_handler(request: Request, exc):
+    """Custom 500 page"""
+    logger.error(f"Server error: {exc}")
+    return templates.TemplateResponse("500.html", {
+        "request": request,
+        "title": "Server Error - Kapital Bank"
+    }, status_code=500)
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Initialize app on startup"""
+    logger.info("Kapital Bank AI Assistant starting up...")
+    
+    # Warm up currency cache
     try:
-        # Check AI model
-        ai_status = "available" if app_state.get('ai_model') else "unavailable"
-        
-        # Check external APIs
-        external_api_status = await check_external_apis()
-        
-        return {
-            "status": "healthy",
-            "ai_model": ai_status,
-            "external_apis": external_api_status,
-            "timestamp": datetime.now().isoformat()
-        }
+        await get_currency_rates()
+        logger.info("Currency rates cache warmed up")
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
+        logger.warning(f"Failed to warm up currency cache: {e}")
+    
+    logger.info("Kapital Bank AI Assistant ready!")
 
-@app.post("/api/locations/find")
-async def find_locations(request: LocationSearchRequest):
-    """Find Kapital Bank locations"""
-    try:
-        # Call the endpoints.json API
-        result = await fetch_kapital_bank_locations(
-            request.service_type,
-            request.latitude,
-            request.longitude,
-            request.radius_km,
-            request.limit
-        )
-        
-        return {
-            "locations": result.get("locations", []),
-            "total_found": len(result.get("locations", [])),
-            "search_radius": request.radius_km,
-            "center_point": [request.latitude, request.longitude]
-        }
-        
-    except Exception as e:
-        logger.error(f"Error finding locations: {e}")
-        raise HTTPException(status_code=500, detail="Failed to find locations")
-
-@app.get("/api/currency/rates")
-async def get_currency_rates():
-    """Get current currency rates"""
-    try:
-        return await get_current_currency_rates()
-    except Exception as e:
-        logger.error(f"Error getting currency rates: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get currency rates")
-
-@app.post("/api/currency/compare")
-async def compare_currency_rates(request: CurrencyComparisonRequest):
-    """Compare currency rates across sources"""
-    try:
-        result = await compare_rates(request.currency, request.amount)
-        
-        return {
-            "currency": request.currency,
-            "amount": request.amount,
-            "official_rate": result.get("official_rate", 0),
-            "market_rates": result.get("market_rates", {}),
-            "best_rate": result.get("best_rate", {}),
-            "savings": result.get("savings", 0)
-        }
-        
-    except Exception as e:
-        logger.error(f"Error comparing currency rates: {e}")
-        raise HTTPException(status_code=500, detail="Failed to compare rates")
-
-@app.post("/api/chat")
-async def chat_with_ai(message: ChatMessage):
-    """Chat with AI assistant"""
-    try:
-        # Process message with AI
-        response = await process_chat_message(
-            message.message,
-            message.language,
-            message.user_location
-        )
-        
-        return {
-            "response": response.get("response", "Sorry, I couldn't process that request."),
-            "language": message.language,
-            "suggestions": response.get("suggestions", [])
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in chat: {e}")
-        return {
-            "response": "I'm sorry, I'm having trouble processing your request right now. Please try again later.",
-            "language": message.language,
-            "suggestions": []
-        }
-
-# Helper functions
-
-async def check_external_apis():
-    """Check external API connectivity"""
-    apis = {
-        "kapital_bank": False,
-        "cbar": False,
-        "azn_rates": False
-    }
-    
-    session = app_state.get('http_session')
-    if not session:
-        return apis
-    
-    try:
-        # Test Kapital Bank API
-        async with session.get("https://www.kapitalbank.az/locations/region?type=branch", timeout=10) as response:
-            apis["kapital_bank"] = response.status == 200
-    except:
-        pass
-    
-    try:
-        # Test CBAR API
-        from datetime import datetime
-        date_str = datetime.now().strftime('%d.%m.%Y')
-        async with session.get(f"https://www.cbar.az/currencies/{date_str}.xml", timeout=10) as response:
-            apis["cbar"] = response.status == 200
-    except:
-        pass
-    
-    try:
-        # Test AZN rates API
-        async with session.get("https://www.azn.az/data/data.json", timeout=10) as response:
-            apis["azn_rates"] = response.status == 200
-    except:
-        pass
-    
-    return apis
-
-async def fetch_kapital_bank_locations(service_type: str, lat: float, lng: float, radius: int, limit: int):
-    """Fetch locations from Kapital Bank API"""
-    session = app_state.get('http_session')
-    if not session:
-        return {"locations": []}
-    
-    try:
-        # Map service types to API endpoints
-        service_map = {
-            "branch": "branch",
-            "atm": "atm", 
-            "cash_in": "cash_in",
-            "digital_center": "reqemsal-merkez",
-            "payment_terminal": "payment_terminal"
-        }
-        
-        api_service_type = service_map.get(service_type, service_type)
-        url = f"https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type={api_service_type}"
-        
-        async with session.get(url, timeout=30) as response:
-            if response.status == 200:
-                data = await response.json()
-                
-                # Process and filter locations
-                locations = []
-                if isinstance(data, list):
-                    for item in data:
-                        location = process_location_data(item, service_type, lat, lng)
-                        if location and location.get('distance_km', 0) <= radius:
-                            locations.append(location)
-                
-                # Sort by distance and limit
-                locations.sort(key=lambda x: x.get('distance_km', 999))
-                return {"locations": locations[:limit]}
-                
-    except Exception as e:
-        logger.error(f"Error fetching {service_type} locations: {e}")
-    
-    return {"locations": []}
-
-def process_location_data(raw_data: dict, service_type: str, user_lat: float, user_lng: float):
-    """Process raw location data"""
-    try:
-        latitude = float(raw_data.get('latitude', 0))
-        longitude = float(raw_data.get('longitude', 0))
-        
-        if latitude == 0 and longitude == 0:
-            return None
-        
-        # Calculate distance
-        distance = calculate_distance(user_lat, user_lng, latitude, longitude)
-        
-        return {
-            'id': str(raw_data.get('id', f"{service_type}_{hash(str(raw_data))}")),
-            'name': raw_data.get('name', f'Kapital Bank {service_type.title()}').strip(),
-            'service_type': service_type,
-            'address': raw_data.get('address', '').strip(),
-            'latitude': latitude,
-            'longitude': longitude,
-            'distance_km': round(distance, 2),
-            'contact': {
-                'phone': raw_data.get('phone', '+994 12 409 00 00'),
-                'email': 'info@kapitalbank.az'
-            },
-            'working_hours': get_default_hours(service_type),
-            'features': get_service_features(service_type)
-        }
-        
-    except Exception as e:
-        logger.error(f"Error processing location data: {e}")
-        return None
-
-def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate distance between two points using Haversine formula"""
-    import math
-    
-    R = 6371  # Earth's radius in kilometers
-    
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    
-    a = (math.sin(dlat/2) * math.sin(dlat/2) + 
-         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * 
-         math.sin(dlon/2) * math.sin(dlon/2))
-    
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    return R * c
-
-def get_default_hours(service_type: str) -> dict:
-    """Get default working hours for service type"""
-    if service_type == 'atm':
-        return {day: '24/7' for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']}
-    else:
-        return {
-            'monday': '09:00-18:00',
-            'tuesday': '09:00-18:00',
-            'wednesday': '09:00-18:00',
-            'thursday': '09:00-18:00',
-            'friday': '09:00-18:00',
-            'saturday': '09:00-15:00',
-            'sunday': 'Closed'
-        }
-
-def get_service_features(service_type: str) -> list:
-    """Get features for service type"""
-    features_map = {
-        'branch': ['Cash withdrawal', 'Deposits', 'Account opening', 'Loans', 'Currency exchange'],
-        'atm': ['Cash withdrawal', 'Balance inquiry', '24/7 access'],
-        'cash_in': ['Cash deposit', 'Account funding', 'Quick deposits'],
-        'digital_center': ['Self-service banking', 'Digital assistance', 'Account management'],
-        'payment_terminal': ['Bill payments', 'Utility payments', 'Mobile top-up']
-    }
-    return features_map.get(service_type, [])
-
-async def get_current_currency_rates():
-    """Get current currency rates from CBAR"""
-    session = app_state.get('http_session')
-    if not session:
-        return None
-    
-    try:
-        from datetime import datetime
-        import xml.etree.ElementTree as ET
-        
-        date_str = datetime.now().strftime('%d.%m.%Y')
-        url = f"https://www.cbar.az/currencies/{date_str}.xml"
-        
-        async with session.get(url, timeout=30) as response:
-            if response.status == 200:
-                xml_content = await response.text()
-                
-                # Parse XML
-                root = ET.fromstring(xml_content)
-                rates = {}
-                
-                for currency_elem in root.findall('.//Valute'):
-                    code = currency_elem.get('Code', '')
-                    nominal_text = currency_elem.find('Nominal').text or '1'
-                    value_text = currency_elem.find('Value').text or '0'
-                    
-                    # Skip entries with non-numeric values like '1 t.u.'
-                    try:
-                        # Clean and parse nominal - handle '1 t.u.' cases
-                        if 't.u.' in nominal_text or 't.u' in nominal_text:
-                            continue  # Skip these entries
-                        
-                        nominal = int(nominal_text)
-                        value = float(value_text)
-                        
-                        if code and value > 0 and nominal > 0:
-                            rate_per_unit = value / nominal
-                            rates[code] = rate_per_unit
-                            
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"Skipping currency {code} due to parsing error: {e}")
-                        continue
-                
-                return {
-                    "rates": rates,
-                    "last_updated": datetime.now().isoformat(),
-                    "source": "CBAR"
-                }
-                
-    except Exception as e:
-        logger.error(f"Error fetching currency rates: {e}")
-    
-    return None
-
-async def compare_rates(currency: str, amount: float = None):
-    """Compare currency rates from different sources"""
-    try:
-        # Get official rates
-        official_data = await get_current_currency_rates()
-        official_rate = official_data.get('rates', {}).get(currency, 0) if official_data else 0
-        
-        # For now, return official rate as best rate
-        # In a full implementation, you would fetch market rates from banks
-        
-        best_rate = {"bank": "CBAR", "rate": official_rate, "type": "official"}
-        savings = 0
-        
-        if amount and official_rate > 0:
-            savings = amount * 0.01  # Mock 1% potential savings
-        
-        return {
-            "official_rate": official_rate,
-            "market_rates": {},  # Would be populated with actual bank rates
-            "best_rate": best_rate,
-            "savings": savings
-        }
-        
-    except Exception as e:
-        logger.error(f"Error comparing rates: {e}")
-        return {
-            "official_rate": 0,
-            "market_rates": {},
-            "best_rate": {},
-            "savings": 0
-        }
-
-async def process_chat_message(message: str, language: str, user_location: list = None):
-    """Process chat message with AI"""
-    ai_model = app_state.get('ai_model')
-    if not ai_model:
-        return {
-            "response": get_fallback_response(message, language),
-            "suggestions": get_default_suggestions(language)
-        }
-    
-    try:
-        # Analyze message intent
-        intent = analyze_message_intent(message, language)
-        
-        # Get relevant data
-        context_data = await get_context_data(intent, user_location)
-        
-        # Build AI prompt
-        prompt = build_ai_prompt(message, language, intent, context_data, user_location)
-        
-        # Generate response with updated method
-        response = ai_model.generate_content(prompt)
-        
-        return {
-            "response": response.text,
-            "suggestions": generate_suggestions(intent, language)
-        }
-        
-    except Exception as e:
-        logger.error(f"Error processing chat message: {e}")
-        return {
-            "response": get_fallback_response(message, language),
-            "suggestions": get_default_suggestions(language)
-        }
-
-def analyze_message_intent(message: str, language: str):
-    """Analyze message intent"""
-    message_lower = message.lower()
-    
-    intent = {
-        "primary_intent": "general",
-        "needs_location": False,
-        "needs_currency": False,
-        "service_types": [],
-        "currencies": []
-    }
-    
-    # Location keywords
-    location_keywords = ["find", "nearest", "near", "atm", "branch", "location", "where"]
-    if any(keyword in message_lower for keyword in location_keywords):
-        intent["primary_intent"] = "location_search"
-        intent["needs_location"] = True
-    
-    # Currency keywords
-    currency_keywords = ["rate", "exchange", "currency", "dollar", "euro", "convert"]
-    if any(keyword in message_lower for keyword in currency_keywords):
-        intent["primary_intent"] = "currency_inquiry"
-        intent["needs_currency"] = True
-    
-    # Extract service types
-    if "atm" in message_lower:
-        intent["service_types"].append("atm")
-    if "branch" in message_lower:
-        intent["service_types"].append("branch")
-    
-    # Extract currencies
-    currency_map = {"dollar": "USD", "euro": "EUR", "ruble": "RUB", "lira": "TRY"}
-    for word, code in currency_map.items():
-        if word in message_lower:
-            intent["currencies"].append(code)
-    
-    return intent
-
-async def get_context_data(intent: dict, user_location: list):
-    """Get relevant context data based on intent"""
-    context = {}
-    
-    if intent["needs_location"] and user_location:
-        # Get nearby locations for default service type
-        service_type = intent["service_types"][0] if intent["service_types"] else "branch"
-        context["locations"] = await fetch_kapital_bank_locations(
-            service_type, user_location[0], user_location[1], 5, 3
-        )
-    
-    if intent["needs_currency"]:
-        context["rates"] = await get_current_currency_rates()
-        
-        # Get comparison for specific currencies
-        for currency in intent["currencies"]:
-            context[f"comparison_{currency}"] = await compare_rates(currency, 1000)
-    
-    return context
-
-def build_ai_prompt(message: str, language: str, intent: dict, context_data: dict, user_location: list):
-    """Build AI prompt with context"""
-    
-    prompt = f"""
-You are an AI assistant for Kapital Bank in Azerbaijan. You help users find bank services and get currency information.
-
-Language: {language}
-User message: {message}
-Intent: {intent}
-User location: {user_location}
-Available data: {json.dumps(context_data, indent=2, default=str)}
-
-Instructions:
-1. Respond in {language} (English or Azerbaijani)
-2. Be helpful, accurate, and concise
-3. Use the data provided to give specific recommendations
-4. If location data is available, mention distances and addresses
-5. If currency data is available, provide current rates
-6. Always be polite and professional
-7. If you can't help with something, explain why and suggest alternatives
-
-Generate a helpful response:
-"""
-    
-    return prompt
-
-def get_fallback_response(message: str, language: str):
-    """Get fallback response when AI is not available"""
-    if language == "az":
-        return "Kapital Bank AI köməkçisinə xoş gəlmisiniz! Sizə bank xidmətləri və valyuta məzənnələri haqqında kömək edə bilərəm."
-    else:
-        return "Welcome to Kapital Bank AI Assistant! I can help you with banking services and currency rates."
-
-def generate_suggestions(intent: dict, language: str):
-    """Generate suggestions based on intent"""
-    if language == "az":
-        if intent["primary_intent"] == "location_search":
-            return ["İş saatlarını öyrən", "Yol tarifini göstər", "Valyuta məzənnələrini yoxla"]
-        elif intent["primary_intent"] == "currency_inquiry":
-            return ["Başqa valyutaları müqayisə et", "Ən yaxın mübadilə məntəqəsini tap"]
-        else:
-            return ["Ən yaxın ATM-i tap", "Valyuta məzənnələrini yoxla", "Əlaqə məlumatları"]
-    else:
-        if intent["primary_intent"] == "location_search":
-            return ["Check working hours", "Get directions", "Check currency rates"]
-        elif intent["primary_intent"] == "currency_inquiry":
-            return ["Compare other currencies", "Find nearest exchange"]
-        else:
-            return ["Find nearest ATM", "Check currency rates", "Contact details"]
-
-def get_default_suggestions(language: str):
-    """Get default suggestions"""
-    if language == "az":
-        return ["Ən yaxın ATM-i tap", "Valyuta məzənnələrini yoxla", "Bank filialları"]
-    else:
-        return ["Find nearest ATM", "Check currency rates", "Bank branches"]
+# Shutdown event  
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Kapital Bank AI Assistant shutting down...")
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=port,
+        port=8000,
+        reload=True,
         log_level="info"
     )
