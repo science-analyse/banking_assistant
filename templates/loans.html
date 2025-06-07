@@ -1,493 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}Loans & Credit - {% endblock %}
-{% block page_name %}loans{% endblock %}
+{% block title %}Loans Information - AI Banking Assistant{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <!-- Hero Section -->
-    <div class="hero-section mb-5">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <div class="hero-content">
-                    <h1 class="display-4 fw-bold mb-4">
-                        <i class="bi bi-bank2 me-3 text-primary"></i>
-                        Loans & Credit Solutions
-                    </h1>
-                    <p class="lead mb-4">
-                        Achieve your financial goals with 's comprehensive loan products. 
-                        From personal loans to mortgages, we have the right solution for you.
-                    </p>
-                    <div class="d-flex gap-3 flex-wrap">
-                        <a href="#loan-calculator" class="btn btn-primary btn-lg">
-                            <i class="bi bi-calculator me-2"></i>Calculate Loan
-                        </a>
-                        <a href="/locations" class="btn btn-outline-primary btn-lg">
-                            <i class="bi bi-geo-alt me-2"></i>Find Branch
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="text-center">
-                    <i class="bi bi-piggy-bank" style="font-size: 8rem; color: var(--kb-primary); opacity: 0.8;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loan Products -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <h2 class="text-center mb-5">Our Loan Products</h2>
-        </div>
-        
-        <!-- Personal Loans -->
-        <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="bi bi-person-check me-2"></i>
-                        Personal Loans
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Quick and convenient personal loans for your immediate needs.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Up to 50,000 AZN</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Competitive interest rates</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Flexible repayment terms</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Quick approval process</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>No collateral required</li>
-                    </ul>
-                    <div class="mt-4">
-                        <div class="row text-center">
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">From 12%</div>
-                                <small class="text-muted">Annual Interest Rate</small>
-                            </div>
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">Up to 5 years</div>
-                                <small class="text-muted">Loan Term</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button class="btn btn-primary w-100">Learn More</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mortgage Loans -->
-        <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="bi bi-house me-2"></i>
-                        Mortgage Loans
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Make your dream home a reality with our mortgage solutions.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Up to 200,000 AZN</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Low interest rates</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Up to 20 years term</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Property as collateral</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Expert guidance</li>
-                    </ul>
-                    <div class="mt-4">
-                        <div class="row text-center">
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">From 8%</div>
-                                <small class="text-muted">Annual Interest Rate</small>
-                            </div>
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">Up to 20 years</div>
-                                <small class="text-muted">Loan Term</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button class="btn btn-primary w-100">Learn More</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Business Loans -->
-        <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="bi bi-briefcase me-2"></i>
-                        Business Loans
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Grow your business with our tailored business financing solutions.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Up to 500,000 AZN</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Business-friendly rates</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Flexible terms</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Working capital support</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Equipment financing</li>
-                    </ul>
-                    <div class="mt-4">
-                        <div class="row text-center">
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">From 10%</div>
-                                <small class="text-muted">Annual Interest Rate</small>
-                            </div>
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">Up to 7 years</div>
-                                <small class="text-muted">Loan Term</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button class="btn btn-primary w-100">Learn More</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Car Loans -->
-        <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="bi bi-car-front me-2"></i>
-                        Auto Loans
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Drive your dream car with our competitive auto financing.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Up to 100,000 AZN</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>New and used cars</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Fast approval</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Vehicle as collateral</li>
-                        <li><i class="bi bi-check-circle text-success me-2"></i>Insurance options</li>
-                    </ul>
-                    <div class="mt-4">
-                        <div class="row text-center">
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">From 9%</div>
-                                <small class="text-muted">Annual Interest Rate</small>
-                            </div>
-                            <div class="col-6">
-                                <div class="fw-bold text-primary">Up to 5 years</div>
-                                <small class="text-muted">Loan Term</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button class="btn btn-primary w-100">Learn More</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loan Calculator -->
-    <div class="row mb-5" id="loan-calculator">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0">
-                        <i class="bi bi-calculator me-2"></i>
-                        Loan Calculator
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <form id="loanCalculatorForm">
-                                <div class="mb-3">
-                                    <label for="loanAmount" class="form-label">Loan Amount (AZN)</label>
-                                    <input type="number" class="form-control" id="loanAmount" min="1000" max="500000" value="10000">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="interestRate" class="form-label">Annual Interest Rate (%)</label>
-                                    <input type="number" class="form-control" id="interestRate" min="5" max="25" step="0.1" value="12">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="loanTerm" class="form-label">Loan Term (years)</label>
-                                    <input type="number" class="form-control" id="loanTerm" min="1" max="20" value="3">
-                                </div>
-                                <button type="button" class="btn btn-primary" onclick="calculateLoan()">
-                                    <i class="bi bi-calculator me-2"></i>Calculate
-                                </button>
-                            </form>
-                        </div>
-                        <div class="col-lg-6">
-                            <div id="calculationResults" class="mt-4 mt-lg-0">
-                                <div class="alert alert-info">
-                                    <i class="bi bi-info-circle me-2"></i>
-                                    Enter loan details and click calculate to see your monthly payment.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Application Process -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <h2 class="text-center mb-5">How to Apply</h2>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="text-center">
-                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <span class="h3 mb-0">1</span>
-                </div>
-                <h5>Choose Your Loan</h5>
-                <p class="text-muted">Select the loan product that best fits your needs from our range of options.</p>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="text-center">
-                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <span class="h3 mb-0">2</span>
-                </div>
-                <h5>Prepare Documents</h5>
-                <p class="text-muted">Gather required documents including ID, income proof, and any collateral documents.</p>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="text-center">
-                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <span class="h3 mb-0">3</span>
-                </div>
-                <h5>Submit Application</h5>
-                <p class="text-muted">Visit our branch or apply online. Our specialists will review your application.</p>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="text-center">
-                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <span class="h3 mb-0">4</span>
-                </div>
-                <h5>Get Approved</h5>
-                <p class="text-muted">Receive approval and access your funds quickly through our streamlined process.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Required Documents -->
+<div class="container">
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0">
-                        <i class="bi bi-file-earmark-text me-2"></i>
-                        Required Documents
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5>Personal Documents</h5>
-                            <ul class="list-unstyled">
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Valid ID or Passport</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Proof of residence</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Employment certificate</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Income statements (last 6 months)</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Bank statements</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h5>Additional Documents (if applicable)</h5>
-                            <ul class="list-unstyled">
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Business registration (for business loans)</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Property documents (for mortgages)</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Vehicle documents (for auto loans)</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Collateral documents</li>
-                                <li><i class="bi bi-check-circle text-success me-2"></i>Insurance policies</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="text-center mt-4">
-                        <p class="text-muted">
-                            <i class="bi bi-info-circle me-2"></i>
-                            Document requirements may vary by loan type. Contact our specialists for specific requirements.
-                        </p>
-                        <a href="/locations" class="btn btn-primary">
-                            <i class="bi bi-geo-alt me-2"></i>Find Nearest Branch
-                        </a>
-                    </div>
+            <div class="text-center py-5">
+                <i class="fas fa-hand-holding-usd fa-4x text-primary mb-4"></i>
+                <h2>Banking Loans Information</h2>
+                <p class="text-muted mb-4">
+                    For detailed loan information and applications, please visit your nearest bank branch or contact customer service.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-home fa-2x text-success mb-3"></i>
+                    <h5>Mortgage Loans</h5>
+                    <p class="text-muted">Home financing solutions with competitive rates</p>
+                    <a href="/chat" class="btn btn-outline-primary">Ask AI Assistant</a>
                 </div>
             </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-car fa-2x text-info mb-3"></i>
+                    <h5>Auto Loans</h5>
+                    <p class="text-muted">Vehicle financing with flexible terms</p>
+                    <a href="/chat" class="btn btn-outline-primary">Ask AI Assistant</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user fa-2x text-warning mb-3"></i>
+                    <h5>Personal Loans</h5>
+                    <p class="text-muted">Quick personal financing solutions</p>
+                    <a href="/chat" class="btn btn-outline-primary">Ask AI Assistant</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <div class="alert alert-info">
+                <i class="fas fa-robot me-2"></i>
+                <strong>Need help?</strong> Ask our AI assistant about loan requirements, rates, and application processes.
+            </div>
+            <a href="/chat" class="btn btn-primary btn-lg">
+                <i class="fas fa-comments me-2"></i>Chat with AI Assistant
+            </a>
+            <a href="/locations" class="btn btn-outline-primary btn-lg ms-2">
+                <i class="fas fa-map-marker-alt me-2"></i>Find Branches
+            </a>
         </div>
     </div>
 </div>
-
-<script>
-// Loan calculator function
-function calculateLoan() {
-    const amount = parseFloat(document.getElementById('loanAmount').value);
-    const rate = parseFloat(document.getElementById('interestRate').value) / 100 / 12;
-    const term = parseFloat(document.getElementById('loanTerm').value) * 12;
-    
-    if (amount && rate && term) {
-        const monthlyPayment = amount * (rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
-        const totalPayment = monthlyPayment * term;
-        const totalInterest = totalPayment - amount;
-        
-        const resultsHTML = `
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-calculator me-2"></i>
-                        Calculation Results
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center mb-4">
-                        <div class="col-12">
-                            <h3 class="text-primary">${monthlyPayment.toFixed(2)} AZN</h3>
-                            <p class="text-muted mb-0">Monthly Payment</p>
-                        </div>
-                    </div>
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="fw-bold">${amount.toFixed(2)} AZN</div>
-                            <small class="text-muted">Loan Amount</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="fw-bold">${totalPayment.toFixed(2)} AZN</div>
-                            <small class="text-muted">Total Payment</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="fw-bold">${totalInterest.toFixed(2)} AZN</div>
-                            <small class="text-muted">Total Interest</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Payment Schedule Preview -->
-                    <div class="mt-4">
-                        <h6>Payment Breakdown</h6>
-                        <div class="progress mb-2">
-                            <div class="progress-bar bg-primary" style="width: ${(amount/totalPayment*100).toFixed(1)}%"></div>
-                            <div class="progress-bar bg-warning" style="width: ${(totalInterest/totalPayment*100).toFixed(1)}%"></div>
-                        </div>
-                        <div class="row">
-                            <div class="col-6">
-                                <small><span class="badge bg-primary me-1"></span>Principal: ${((amount/totalPayment)*100).toFixed(1)}%</small>
-                            </div>
-                            <div class="col-6">
-                                <small><span class="badge bg-warning me-1"></span>Interest: ${((totalInterest/totalPayment)*100).toFixed(1)}%</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4 text-center">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            These are estimated calculations. Actual rates and terms may vary. Contact us for personalized offers.
-                        </small>
-                    </div>
-                    
-                    <div class="mt-3 text-center">
-                        <a href="/locations" class="btn btn-success btn-sm me-2">
-                            <i class="bi bi-geo-alt me-1"></i>Find Branch
-                        </a>
-                        <a href="/chat" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-chat-dots me-1"></i>Ask AI Assistant
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.getElementById('calculationResults').innerHTML = resultsHTML;
-    } else {
-        document.getElementById('calculationResults').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                Please fill in all fields with valid values.
-            </div>
-        `;
-    }
-}
-
-// Auto-calculate on input change
-document.addEventListener('DOMContentLoaded', function() {
-    const inputs = ['loanAmount', 'interestRate', 'loanTerm'];
-    
-    inputs.forEach(inputId => {
-        const input = document.getElementById(inputId);
-        if (input) {
-            input.addEventListener('input', function() {
-                // Auto-calculate after a short delay
-                clearTimeout(this.calculateTimeout);
-                this.calculateTimeout = setTimeout(calculateLoan, 500);
-            });
-        }
-    });
-    
-    // Initial calculation with default values
-    calculateLoan();
-});
-
-// Loan type quick selection
-function selectLoanType(type) {
-    const presets = {
-        personal: { amount: 10000, rate: 12, term: 3 },
-        mortgage: { amount: 100000, rate: 8, term: 15 },
-        business: { amount: 50000, rate: 10, term: 5 },
-        auto: { amount: 25000, rate: 9, term: 4 }
-    };
-    
-    if (presets[type]) {
-        document.getElementById('loanAmount').value = presets[type].amount;
-        document.getElementById('interestRate').value = presets[type].rate;
-        document.getElementById('loanTerm').value = presets[type].term;
-        calculateLoan();
-    }
-}
-</script>
-
-{% block extra_scripts %}
-<script>
-// Additional page-specific functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Smooth scrolling for internal links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-    
-    // Add animation to cards on scroll
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('animate-fade-in');
-            }
-        });
-    }, observerOptions);
-    
-    document.querySelectorAll('.card').forEach(card => {
-        observer.observe(card);
-    });
-});
-</script>
 {% endblock %}

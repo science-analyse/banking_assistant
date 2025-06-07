@@ -725,6 +725,17 @@ async def chat_page(request: Request):
     """AI chat interface"""
     return templates.TemplateResponse("chat.html", {"request": request})
 
+# Additional routes to fix 404s
+@app.get("/offline")
+async def offline_page(request: Request):
+    """Offline page for PWA"""
+    return templates.TemplateResponse("offline.html", {"request": request})
+
+@app.get("/loans")
+async def loans_page(request: Request):
+    """Loans information page"""
+    return templates.TemplateResponse("loans.html", {"request": request})
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
