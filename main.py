@@ -36,6 +36,35 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# ADD THIS: Configure moment function for Jinja2 templates
+def moment(timestamp=None):
+    """Moment.js-like function for Jinja2 templates"""
+    if timestamp is None:
+        timestamp = datetime.now()
+    elif isinstance(timestamp, str):
+        timestamp = datetime.fromisoformat(timestamp)
+    
+    class MomentObject:
+        def __init__(self, dt):
+            self.dt = dt
+        
+        def format(self, format_str='YYYY-MM-DD HH:mm:ss'):
+            """Format datetime like moment.js"""
+            if format_str == 'LLL':
+                return self.dt.strftime('%B %d, %Y %I:%M %p')
+            elif format_str == 'YYYY-MM-DD':
+                return self.dt.strftime('%Y-%m-%d')
+            elif format_str == 'HH:mm':
+                return self.dt.strftime('%H:%M')
+            else:
+                # Default format
+                return self.dt.strftime('%Y-%m-%d %H:%M:%S')
+    
+    return MomentObject(timestamp)
+
+# Add moment function to Jinja2 globals
+templates.env.globals['moment'] = moment
+
 # AI Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
