@@ -385,23 +385,46 @@ class ChatService:
             response += f"💱 **{code}**: {curr['value']:.4f} AZN ({curr['name']})\n"
         
         return response
-    
+
     @staticmethod
-    async def generate_ai_response(message: str, context_data: Dict[str, Any]) -> str:
+    async def generate_ai_response(message: str, context_data: Dict[str, Any], conversation_context: List[Dict[str, str]] = None) -> str:
         """Generate AI response using Gemini"""
         try:
-            # Build context prompt
-            context_prompt = "You are a helpful AI banking assistant. "
+            # Build comprehensive context prompt
+            context_prompt = """You are an intelligent AI banking assistant for Kapital Bank in Azerbaijan. 
+    You provide helpful, accurate, and friendly responses about banking services.
+
+    You can help with:
+    - Finding ATM and branch locations
+    - Currency exchange rates  
+    - Payment terminals
+    - Banking services and general inquiries
+
+    Always be conversational and helpful. When asked about locations, provide the most relevant ones.
+    When asked about exchange rates, explain the rates clearly.
+    Answer questions about Azerbaijan, weather, or general topics naturally - you're not restricted to only banking topics.
+    """
             
+            # Add real-time data if available
             if context_data.get('locations'):
-                context_prompt += f"Location data: {json.dumps(context_data['locations'][:3], indent=2)}\n"
+                locations_text = "\n".join([f"- {loc.get('name', 'Unknown')}: {loc.get('address', 'N/A')} ({'Open' if loc.get('is_open') else 'Closed'})" 
+                                        for loc in context_data['locations'][:10]])
+                context_prompt += f"\n\nAvailable location data:\n{locations_text}"
             
             if context_data.get('currency_rates'):
-                context_prompt += f"Currency rates: {json.dumps(context_data['currency_rates'], indent=2)}\n"
+                rates = context_data['currency_rates'].get('currencies', {})
+                rates_text = "\n".join([f"- {code}: {data['value']:.4f} AZN" for code, data in list(rates.items())[:10]])
+                context_prompt += f"\n\nCurrent exchange rates (as of {context_data['currency_rates'].get('date', 'today')}):\n{rates_text}"
             
-            full_prompt = f"{context_prompt}\n\nUser question: {message}\n\nPlease provide a helpful response based on the available data."
+            # Add conversation context
+            if conversation_context:
+                context_prompt += "\n\nRecent conversation:"
+                for ctx in conversation_context[-3:]:  # Last 3 messages
+                    context_prompt += f"\n{ctx['role']}: {ctx['content']}"
             
-            # Generate response using the new Gemini client
+            full_prompt = f"{context_prompt}\n\nUser question: {message}\n\nResponse:"
+            
+            # Generate response using Gemini
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
                 contents=[{'parts': [{'text': full_prompt}]}]
@@ -411,7 +434,7 @@ class ChatService:
         except Exception as e:
             logger.error(f"Error generating AI response: {e}")
             return "I apologize, but I'm having trouble processing your request right now. Please try again."
-    
+        
     @staticmethod
     async def process_message(message: str, context: List[Dict[str, str]] = None) -> ChatResponse:
         """Process incoming chat message"""
@@ -422,22 +445,15 @@ class ChatService:
             # Enrich context with real-time data
             context_data = await RAGProcessor.enrich_context(intent)
             
-            # Generate response
-            data_sources = []
+            # ALWAYS use Gemini AI with enriched data
+            response_text = await ChatService.generate_ai_response(message, context_data, context)
             
-            if intent['type'] == 'location' and context_data.get('locations'):
-                response_text = ChatService.format_location_response(
-                    context_data['locations'], 
-                    intent.get('subtype', 'location')
-                )
+            # Build data sources list
+            data_sources = []
+            if context_data.get('locations'):
                 data_sources.append("Kapital Bank Location API")
-            elif intent['type'] == 'currency' and context_data.get('currency_rates'):
-                response_text = ChatService.format_currency_response(context_data['currency_rates'])
+            if context_data.get('currency_rates'):
                 data_sources.append("Central Bank of Azerbaijan")
-            else:
-                response_text = await ChatService.generate_ai_response(message, context_data)
-                if context_data:
-                    data_sources.append("External APIs")
             
             return ChatResponse(
                 response=response_text,
