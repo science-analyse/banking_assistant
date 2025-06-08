@@ -295,7 +295,7 @@ class EnhancedRAGProcessor:
             # Port Baku area
             'port baku': {'lat': 40.3667, 'lon': 49.8352},
             'port baku mall': {'lat': 40.3667, 'lon': 49.8352},
-            'second cup': {'lat': 40.3667, 'lon': 49.8352},  # Assuming it's in Port Baku
+            'second cup': {'lat': 40.3667, 'lon': 49.8352},
             
             # Major shopping centers
             'ganjlik mall': {'lat': 40.4093, 'lon': 49.8671},
@@ -311,6 +311,23 @@ class EnhancedRAGProcessor:
             'flame towers': {'lat': 40.3595, 'lon': 49.8266},
             'icherisheher': {'lat': 40.3664, 'lon': 49.8373},
             'old city': {'lat': 40.3664, 'lon': 49.8373},
+            
+            # Popular restaurants
+            'khan restaurant': {'lat': 40.3722, 'lon': 49.8376},  # Near Fountain Square
+            'khan restoran': {'lat': 40.3722, 'lon': 49.8376},
+            'nargiz restaurant': {'lat': 40.3695, 'lon': 49.8325},
+            'firuze restaurant': {'lat': 40.3598, 'lon': 49.8359},
+            'sumakh restaurant': {'lat': 40.3712, 'lon': 49.8341},
+            'chinar restaurant': {'lat': 40.3608, 'lon': 49.8297},
+            'mugham club': {'lat': 40.3664, 'lon': 49.8373},
+            'caravanserai restaurant': {'lat': 40.3664, 'lon': 49.8373},
+            
+            # Hotels
+            'four seasons baku': {'lat': 40.3703, 'lon': 49.8403},
+            'fairmont baku': {'lat': 40.3593, 'lon': 49.8263},
+            'hilton baku': {'lat': 40.3768, 'lon': 49.8609},
+            'jw marriott absheron': {'lat': 40.3723, 'lon': 49.8434},
+            'boulevard hotel baku': {'lat': 40.3608, 'lon': 49.8356},
             
             # Metro stations
             'sahil metro': {'lat': 40.3722, 'lon': 49.8489},

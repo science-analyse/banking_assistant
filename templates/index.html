@@ -3,434 +3,596 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Banking Assistant</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Kapital Bank AI Assistant</title>
     <style>
-        /* Custom scrollbar */
-        .chat-container::-webkit-scrollbar {
-            width: 6px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .chat-container::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        
-        .chat-container::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-        
-        .chat-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.5);
+
+        .chat-header {
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
         }
-        
-        /* Message animations */
-        @keyframes fadeInUp {
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .location-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .location-indicator.active {
+            display: flex;
+        }
+
+        .location-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff00;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 0, 0);
+            }
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(10px);
             }
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
-        .message-animation {
-            animation: fadeInUp 0.4s ease-out;
-        }
-        
-        .chat-bubble {
-            padding: 16px;
-            border-radius: 16px;
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-        
-        .chat-bubble.user {
-            background: linear-gradient(135deg, #3b82f6, #1e40af);
-            color: white;
-            margin-left: auto;
-        }
-        
-        .chat-bubble.assistant {
-            background: white;
-            border: 1px solid #e5e7eb;
-            color: #374151;
-        }
-        
-        .nav-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .quick-action-btn {
-            padding: 12px 20px;
-            border-radius: 25px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .quick-action-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
+
+        .message.user {
+            justify-content: flex-end;
         }
 
-        /* Typing indicator */
+        .message-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-bubble {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .message.user .message-time {
+            text-align: right;
+            color: #fce4ec;
+        }
+
         .typing-indicator {
-            display: flex;
+            display: none;
             align-items: center;
+            gap: 4px;
             padding: 12px 16px;
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            max-width: 80px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            width: fit-content;
+        }
+
+        .typing-indicator.active {
+            display: flex;
         }
 
         .typing-dot {
             width: 8px;
             height: 8px;
+            background: #999;
             border-radius: 50%;
-            background-color: #9ca3af;
-            margin: 0 2px;
-            animation: typing 1.4s infinite ease-in-out;
+            animation: typing 1.4s infinite;
         }
 
-        .typing-dot:nth-child(1) { animation-delay: 0.0s; }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
 
         @keyframes typing {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #e91e63;
+        }
+
+        .btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background: #f5f5f5;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+            color: white;
+            width: 44px;
+            height: 44px;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+        }
+
+        .location-btn {
+            position: relative;
+        }
+
+        .location-btn.sharing {
+            color: #e91e63;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-action:hover {
+            background: #e91e63;
+            color: white;
+            border-color: #e91e63;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.2);
+        }
+
+        .data-sources {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+        }
+
+        .confidence-indicator {
+            display: inline-block;
+            width: 40px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-left: 5px;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .confidence-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: #4caf50;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 480px) {
+            .chat-container {
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            
+            .message-bubble {
+                max-width: 90%;
+            }
         }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen flex flex-col">
-    <!-- Single Unified Header -->
-    <header class="bg-gradient-to-r from-blue-600 to-purple-700 shadow-lg">
-        <!-- Main Header Bar -->
-        <div class="px-4 py-4">
-            <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <!-- Logo and Brand -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7V12C2 16.5 4.23 20.68 7.62 23.15L12 24L16.38 23.15C19.77 20.68 22 16.5 22 12V7L12 2Z"/>
-                        </svg>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Kapital Bank AI Assistant</h1>
+            <p>How can I help you today?</p>
+            <div class="location-indicator" id="locationIndicator">
+                <div class="location-dot"></div>
+                <span>Location shared</span>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-content">
+                    <div class="message-bubble">
+                        Welcome! I'm your Kapital Bank AI assistant. I can help you find the nearest branch or ATM, check currency rates, and answer questions about our banking services.
+                        <div class="message-time">Just now</div>
                     </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-white">AI Banking Assistant</h1>
-                        <p class="text-white text-opacity-80 text-sm">Your intelligent financial companion</p>
-                    </div>
-                </div>
-                
-                <!-- Navigation Items -->
-                <nav class="hidden md:flex items-center space-x-4">
-                    <button class="nav-btn flex items-center space-x-2" onclick="sendMessage('Show me ATM locations')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        <span>ATMs</span>
-                    </button>
-                    <button class="nav-btn flex items-center space-x-2" onclick="sendMessage('Find nearest bank branch')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        <span>Branches</span>
-                    </button>
-                    <button class="nav-btn flex items-center space-x-2" onclick="sendMessage('Show current currency exchange rates')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                        <span>Rates</span>
-                    </button>
-                    <button class="nav-btn flex items-center space-x-2" onclick="sendMessage('Find payment terminals')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2a2 2 0 002-2z"/>
-                        </svg>
-                        <span>Terminals</span>
-                    </button>
-                </nav>
-                
-                <!-- Status and Menu -->
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span class="text-white text-opacity-80 text-sm hidden sm:block">Connected</span>
-                    </div>
-                    
-                    <!-- Mobile menu button -->
-                    <button class="md:hidden nav-btn p-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
-                    
-                    <!-- Theme toggle -->
-                    <button class="nav-btn p-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                        </svg>
-                    </button>
                 </div>
             </div>
         </div>
         
-        <!-- Quick Actions Bar -->
-        <div class="border-t border-white border-opacity-20 px-4 py-3">
-            <div class="max-w-6xl mx-auto">
-                <div class="flex flex-wrap gap-3 justify-center">
-                    <button class="quick-action-btn" onclick="sendMessage('Show me nearby ATMs')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        <span>Show me nearby ATMs</span>
-                    </button>
-                    
-                    <button class="quick-action-btn" onclick="sendMessage('Find nearest branch')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        <span>Find nearest branch</span>
-                    </button>
-                    
-                    <button class="quick-action-btn" onclick="sendMessage('Currency exchange rates')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                        <span class="hidden sm:inline">Exchange rates</span>
-                        <span class="sm:hidden">Rates</span>
-                    </button>
-                    
-                    <button class="quick-action-btn" onclick="sendMessage('Payment terminals')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2a2 2 0 002-2z"/>
-                        </svg>
-                        <span>Payment terminals</span>
-                    </button>
-                </div>
-            </div>
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
         </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col max-w-6xl mx-auto w-full p-4">
-        <!-- Chat Messages Container -->
-        <div id="chatMessages" class="chat-container flex-1 space-y-4 overflow-y-auto mb-4 min-h-0">
-            <!-- Welcome Message -->
-            <div class="flex justify-start">
-                <div class="chat-bubble assistant message-animation">
-                    <div class="flex items-center mb-2">
-                        <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        <span class="font-semibold text-gray-800">AI Banking Assistant</span>
-                    </div>
-                    <p class="text-gray-700 mb-3">I'm here to help you with all your banking needs. You can ask me about:</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
-                        <div class="flex items-center">
-                            <span class="text-blue-500 mr-2">🏧</span>
-                            ATM and branch locations
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-green-500 mr-2">💱</span>
-                            Currency exchange rates
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-purple-500 mr-2">💳</span>
-                            Payment terminals
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-orange-500 mr-2">🏛️</span>
-                            Banking services and information
-                        </div>
-                    </div>
-                    <p class="text-gray-600 mt-3 text-sm">How can I assist you today?</p>
-                </div>
+        
+        <div class="chat-input-container">
+            <div class="quick-actions">
+                <button class="quick-action" onclick="sendQuickMessage('Find nearest branch')">
+                    📍 Nearest branch
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('Find nearest ATM')">
+                    💳 Nearest ATM
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('USD exchange rate')">
+                    💱 Exchange rates
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('Working hours')">
+                    🕐 Working hours
+                </button>
             </div>
-        </div>
-
-        <!-- Message Input Area -->
-        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-            <div class="flex space-x-3">
-                <input type="text" 
-                       id="messageInput" 
-                       placeholder="Type your message here..." 
-                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <button id="sendButton" 
-                        onclick="sendMessage()" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            
+            <div class="input-wrapper">
+                <button class="btn location-btn" id="locationBtn" onclick="toggleLocationSharing()" title="Share location">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                    <span>Send</span>
+                </button>
+                
+                <input 
+                    type="text" 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Type your message..."
+                    onkeypress="handleKeyPress(event)"
+                >
+                
+                <button class="btn send-btn" onclick="sendMessage()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
                 </button>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
-        // Global variables
-        let conversationContext = [];
-        let isProcessing = false;
         let ws = null;
-
+        let userLocation = null;
+        let conversationContext = [];
+        
         // Initialize WebSocket connection
         function initWebSocket() {
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+            ws = new WebSocket('ws://localhost:8000/ws');
             
-            try {
-                ws = new WebSocket(wsUrl);
-                
-                ws.onopen = function(event) {
-                    console.log('WebSocket connected');
-                };
-                
-                ws.onmessage = function(event) {
-                    const data = JSON.parse(event.data);
-                    hideTypingIndicator();
-                    addMessageToChat(data.response, 'assistant');
-                    conversationContext.push({role: 'assistant', content: data.response});
-                    isProcessing = false;
-                };
-                
-                ws.onclose = function(event) {
-                    console.log('WebSocket disconnected');
-                };
-                
-                ws.onerror = function(error) {
-                    console.error('WebSocket error:', error);
-                };
-            } catch (error) {
-                console.error('Failed to initialize WebSocket:', error);
-            }
+            ws.onopen = () => {
+                console.log('Connected to chat server');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                hideTypingIndicator();
+                displayMessage(data.response, 'assistant', data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                hideTypingIndicator();
+                displayMessage('Connection error. Please try again.', 'assistant');
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from chat server');
+                setTimeout(initWebSocket, 3000); // Reconnect after 3 seconds
+            };
         }
-
-        // Send message function
-        async function sendMessage(message = null) {
-            const input = document.getElementById('messageInput');
-            const messageText = message || input.value.trim();
+        
+        // Send message
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
             
-            if (!messageText || isProcessing) return;
+            if (!message) return;
             
-            isProcessing = true;
+            displayMessage(message, 'user');
             
-            // Add user message to chat
-            addMessageToChat(messageText, 'user');
-            conversationContext.push({role: 'user', content: messageText});
+            const messageData = {
+                message: message,
+                context: conversationContext
+            };
             
-            // Clear input if it was typed
-            if (!message) {
-                input.value = '';
+            if (userLocation) {
+                messageData.user_location = userLocation;
             }
             
-            // Show typing indicator
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(messageData));
+                showTypingIndicator();
+            } else {
+                // Fallback to HTTP if WebSocket is not available
+                sendHTTPMessage(messageData);
+            }
+            
+            input.value = '';
+        }
+        
+        // Fallback HTTP request
+        async function sendHTTPMessage(messageData) {
             showTypingIndicator();
             
             try {
-                // Try WebSocket first
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                        message: messageText,
-                        context: conversationContext.slice(-5)
-                    }));
-                } else {
-                    // Fallback to HTTP API
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            message: messageText,
-                            context: conversationContext.slice(-5)
-                        }),
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    hideTypingIndicator();
-                    addMessageToChat(data.response, 'assistant');
-                    conversationContext.push({role: 'assistant', content: data.response});
-                    isProcessing = false;
-                }
-            } catch (error) {
-                console.error('Error sending message:', error);
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(messageData)
+                });
+                
+                const data = await response.json();
                 hideTypingIndicator();
-                addMessageToChat('Sorry, I encountered an error. Please try again.', 'assistant');
-                isProcessing = false;
+                displayMessage(data.response, 'assistant', data);
+            } catch (error) {
+                hideTypingIndicator();
+                displayMessage('Sorry, I encountered an error. Please try again.', 'assistant');
             }
         }
         
-        function addMessageToChat(message, sender) {
-            const chatMessages = document.getElementById('chatMessages');
+        // Display message in chat
+        function displayMessage(message, sender, metadata = {}) {
+            const messagesContainer = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            messageDiv.className = `message ${sender}`;
             
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = `chat-bubble ${sender} message-animation`;
-            bubbleDiv.textContent = message;
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
-            messageDiv.appendChild(bubbleDiv);
-            chatMessages.appendChild(messageDiv);
+            let additionalInfo = '';
             
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function showTypingIndicator() {
-            const chatMessages = document.getElementById('chatMessages');
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'flex justify-start';
-            typingDiv.id = 'typingIndicator';
+            if (metadata.data_sources && metadata.data_sources.length > 0) {
+                additionalInfo += `<div class="data-sources">Sources: ${metadata.data_sources.join(', ')}</div>`;
+            }
             
-            const indicatorDiv = document.createElement('div');
-            indicatorDiv.className = 'typing-indicator';
-            indicatorDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+            if (metadata.confidence_score !== undefined) {
+                const confidencePercent = Math.round(metadata.confidence_score * 100);
+                additionalInfo += `<div class="data-sources">
+                    Confidence: 
+                    <span class="confidence-indicator">
+                        <span class="confidence-fill" style="width: ${confidencePercent}%"></span>
+                    </span>
+                    ${confidencePercent}%
+                </div>`;
+            }
             
-            typingDiv.appendChild(indicatorDiv);
-            chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function hideTypingIndicator() {
-            const indicator = document.getElementById('typingIndicator');
-            if (indicator) {
-                indicator.remove();
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-bubble">
+                        ${message}
+                        ${additionalInfo}
+                        <div class="message-time">${time}</div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Update conversation context
+            conversationContext.push({
+                role: sender === 'user' ? 'user' : 'assistant',
+                content: message
+            });
+            
+            // Keep context size manageable
+            if (conversationContext.length > 10) {
+                conversationContext = conversationContext.slice(-10);
             }
         }
         
-        // Enter key functionality
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+        // Location sharing
+        function toggleLocationSharing() {
+            const locationBtn = document.getElementById('locationBtn');
+            const locationIndicator = document.getElementById('locationIndicator');
+            
+            if (!userLocation) {
+                if (navigator.geolocation) {
+                    locationBtn.classList.add('sharing');
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            userLocation = {
+                                lat: position.coords.latitude,
+                                lon: position.coords.longitude
+                            };
+                            
+                            locationIndicator.classList.add('active');
+                            displayMessage('📍 Location shared successfully!', 'assistant');
+                            
+                            // Optionally, send a message to find nearest locations
+                            setTimeout(() => {
+                                sendQuickMessage('Find nearest branch using my location');
+                            }, 500);
+                        },
+                        (error) => {
+                            locationBtn.classList.remove('sharing');
+                            displayMessage('Unable to access your location. Please enable location services or type your address.', 'assistant');
+                        }
+                    );
+                } else {
+                    displayMessage('Location services are not supported by your browser.', 'assistant');
+                }
+            } else {
+                // Turn off location sharing
+                userLocation = null;
+                locationBtn.classList.remove('sharing');
+                locationIndicator.classList.remove('active');
+                displayMessage('📍 Location sharing turned off.', 'assistant');
+            }
+        }
+        
+        // Quick actions
+        function sendQuickMessage(message) {
+            document.getElementById('chatInput').value = message;
+            sendMessage();
+        }
+        
+        // Typing indicator
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').classList.add('active');
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').classList.remove('active');
+        }
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 sendMessage();
             }
-        });
-
-        // Initialize WebSocket when page loads
-        window.addEventListener('load', function() {
+        }
+        
+        // Initialize on load
+        window.onload = () => {
             initWebSocket();
-        });
+            document.getElementById('chatInput').focus();
+        };
     </script>
 </body>
 </html>
