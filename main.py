@@ -6,6 +6,7 @@ from typing import Optional, Dict, List, Any
 from xml.etree import ElementTree
 import asyncio
 from functools import lru_cache
+import re
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -70,6 +71,24 @@ API_ENDPOINTS = {
 # Currency API configuration
 CURRENCY_API_BASE = "https://www.cbar.az/currencies/{}.xml"
 
+# Browser-like headers to avoid 403 errors
+BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,az;q=0.6',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    'Referer': 'https://www.kapitalbank.az/locations/atm/all',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Sec-Ch-Ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"macOS"',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+}
+
 # Response models
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User message")
@@ -85,23 +104,70 @@ def get_current_date_formatted() -> str:
     """Get current date in DD.MM.YYYY format"""
     return datetime.now().strftime("%d.%m.%Y")
 
-async def fetch_with_retry(url: str, max_retries: int = 3) -> Optional[httpx.Response]:
-    """Fetch URL with retry logic"""
-    async with httpx.AsyncClient(timeout=10.0) as client:
+async def fetch_with_retry(url: str, max_retries: int = 3, use_browser_headers: bool = True) -> Optional[httpx.Response]:
+    """Fetch URL with retry logic and proper headers"""
+    headers = BROWSER_HEADERS.copy() if use_browser_headers else {}
+    
+    async with httpx.AsyncClient(
+        timeout=30.0,
+        headers=headers,
+        follow_redirects=True
+    ) as client:
         for attempt in range(max_retries):
             try:
                 response = await client.get(url)
                 response.raise_for_status()
                 return response
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403:
+                    logger.warning(f"403 Forbidden on attempt {attempt + 1} for {url}. Trying with different headers...")
+                    # Try with minimal headers on 403
+                    if attempt == 0 and use_browser_headers:
+                        headers = {
+                            'User-Agent': BROWSER_HEADERS['User-Agent'],
+                            'Accept': '*/*'
+                        }
+                        continue
+                logger.warning(f"HTTP {e.response.status_code} on attempt {attempt + 1} for {url}: {e}")
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed for {url}: {e}")
-                if attempt == max_retries - 1:
-                    logger.error(f"Failed to fetch {url} after {max_retries} attempts")
-                    return None
-                await asyncio.sleep(1 * (attempt + 1))  # Exponential backoff
+                
+            if attempt == max_retries - 1:
+                logger.error(f"Failed to fetch {url} after {max_retries} attempts")
+                return None
+            
+            # Exponential backoff
+            await asyncio.sleep(2 ** attempt)
+
+def parse_nominal_value(nominal_str: str) -> int:
+    """Parse nominal value, handling special cases like '1 t.u.'"""
+    if not nominal_str:
+        return 1
+    
+    # Remove whitespace
+    nominal_str = nominal_str.strip()
+    
+    # Handle troy units (t.u.) and other special cases
+    if 't.u.' in nominal_str.lower():
+        # Extract number before 't.u.'
+        match = re.search(r'(\d+)\s*t\.?u\.?', nominal_str, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+        return 1
+    
+    # Handle regular numbers
+    try:
+        # Extract first number found
+        match = re.search(r'\d+', nominal_str)
+        if match:
+            return int(match.group())
+        return 1
+    except (ValueError, AttributeError):
+        logger.warning(f"Could not parse nominal value: {nominal_str}")
+        return 1
 
 def parse_currency_xml(xml_content: str) -> Dict[str, Any]:
-    """Parse XML currency response"""
+    """Parse XML currency response with improved error handling"""
     try:
         root = ElementTree.fromstring(xml_content)
         currencies = {}
@@ -109,14 +175,33 @@ def parse_currency_xml(xml_content: str) -> Dict[str, Any]:
         for valute in root.findall('.//Valute'):
             code = valute.get('Code')
             if code:
-                currencies[code] = {
-                    'name': valute.findtext('Name', ''),
-                    'value': float(valute.findtext('Value', '0')),
-                    'nominal': int(valute.findtext('Nominal', '1'))
-                }
+                try:
+                    # Parse nominal with special handling
+                    nominal_text = valute.findtext('Nominal', '1')
+                    nominal = parse_nominal_value(nominal_text)
+                    
+                    # Parse value
+                    value_text = valute.findtext('Value', '0')
+                    try:
+                        value = float(value_text)
+                    except ValueError:
+                        logger.warning(f"Could not parse value '{value_text}' for currency {code}")
+                        value = 0.0
+                    
+                    currencies[code] = {
+                        'name': valute.findtext('Name', ''),
+                        'value': value,
+                        'nominal': nominal,
+                        'original_nominal': nominal_text  # Keep original for reference
+                    }
+                except Exception as e:
+                    logger.warning(f"Error parsing currency {code}: {e}")
+                    continue
         
         return {
             'date': root.get('Date', ''),
+            'name': root.get('Name', ''),
+            'description': root.get('Description', ''),
             'currencies': currencies
         }
     except Exception as e:
@@ -143,24 +228,28 @@ class DataEnrichmentService:
         
         for loc_type in types_to_fetch:
             if loc_type in API_ENDPOINTS:
+                logger.info(f"Fetching {loc_type} locations...")
                 response = await fetch_with_retry(API_ENDPOINTS[loc_type])
                 if response and response.status_code == 200:
                     try:
                         data = response.json()
                         if isinstance(data, list):
+                            for item in data:
+                                item['location_type'] = loc_type
                             locations.extend(data)
-                            # Add location type to each item
-                            for item in locations:
-                                item['location_type'] = loc_type
                         elif isinstance(data, dict) and 'data' in data:
-                            locations.extend(data['data'])
-                            for item in locations:
+                            for item in data['data']:
                                 item['location_type'] = loc_type
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to parse JSON for {loc_type}")
+                            locations.extend(data['data'])
+                        logger.info(f"Successfully fetched {len(data) if isinstance(data, list) else len(data.get('data', []))} {loc_type} locations")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse JSON for {loc_type}: {e}")
+                else:
+                    logger.warning(f"Failed to fetch {loc_type} locations")
         
         # Cache the results
         api_cache[cache_key] = locations
+        logger.info(f"Total locations cached: {len(locations)}")
         return locations
     
     @staticmethod
@@ -174,12 +263,16 @@ class DataEnrichmentService:
         date_str = get_current_date_formatted()
         url = CURRENCY_API_BASE.format(date_str)
         
-        response = await fetch_with_retry(url)
+        logger.info(f"Fetching currency rates for {date_str}...")
+        response = await fetch_with_retry(url, use_browser_headers=False)  # CBAR doesn't need browser headers
         if response and response.status_code == 200:
             rates = parse_currency_xml(response.text)
-            api_cache[cache_key] = rates
-            return rates
+            if rates['currencies']:
+                api_cache[cache_key] = rates
+                logger.info(f"Successfully fetched {len(rates['currencies'])} currency rates")
+                return rates
         
+        logger.warning("Failed to fetch currency rates")
         return {'date': date_str, 'currencies': {}}
 
 class RAGProcessor:
@@ -192,15 +285,15 @@ class RAGProcessor:
         
         # Location-related keywords
         location_keywords = {
-            'branch': ['филиал', 'branch', 'bank', 'office', 'банк'],
-            'atm': ['банкомат', 'atm', 'cash', 'money', 'withdraw'],
-            'cash_in': ['cash in', 'deposit', 'внести', 'пополнить'],
-            'digital_center': ['digital', 'цифровой', 'центр', 'service'],
-            'payment_terminal': ['terminal', 'payment', 'оплата', 'платеж']
+            'branch': ['филиал', 'branch', 'bank', 'office', 'банк', 'ofis'],
+            'atm': ['банкомат', 'atm', 'cash', 'money', 'withdraw', 'bankomat'],
+            'cash_in': ['cash in', 'deposit', 'внести', 'пополнить', 'nağd'],
+            'digital_center': ['digital', 'цифровой', 'центр', 'service', 'rəqəmsal'],
+            'payment_terminal': ['terminal', 'payment', 'оплата', 'платеж', 'ödəmə']
         }
         
         # Currency-related keywords
-        currency_keywords = ['курс', 'rate', 'exchange', 'валюта', 'currency', 'dollar', 'euro', 'рубль']
+        currency_keywords = ['курс', 'rate', 'exchange', 'валюта', 'currency', 'dollar', 'euro', 'рубль', 'məzənnə', 'valyuta']
         
         # Check for location intent
         for loc_type, keywords in location_keywords.items():
@@ -275,79 +368,79 @@ class ChatService:
         if not rates.get('currencies'):
             return "Unable to fetch current currency rates."
         
-        response = f"Currency Exchange Rates for {rates.get('date', 'today')}:\n\n"
+        response = f"**Currency Exchange Rates** (as of {rates.get('date', 'today')}):\n\n"
         
-        # Focus on major currencies
-        major_currencies = ['USD', 'EUR', 'GBP', 'RUB', 'TRY']
+        # Popular currencies first
+        popular_currencies = ['USD', 'EUR', 'GBP', 'RUB', 'TRY']
         
-        for code in major_currencies:
+        for code in popular_currencies:
             if code in rates['currencies']:
                 curr = rates['currencies'][code]
-                response += f"• **{code}** ({curr['name']}): {curr['value']} AZN per {curr['nominal']} {code}\n"
+                response += f"💱 **{code}**: {curr['value']:.4f} AZN ({curr['name']})\n"
+        
+        # Add other currencies (limit to 10 total)
+        other_currencies = [code for code in rates['currencies'] if code not in popular_currencies]
+        for code in other_currencies[:5]:
+            curr = rates['currencies'][code]
+            response += f"💱 **{code}**: {curr['value']:.4f} AZN ({curr['name']})\n"
         
         return response
     
     @staticmethod
-    async def process_message(message: str, context: List[Dict[str, str]]) -> ChatResponse:
-        """Process user message with RAG"""
+    async def generate_ai_response(message: str, context_data: Dict[str, Any]) -> str:
+        """Generate AI response using Gemini"""
+        try:
+            # Build context prompt
+            context_prompt = "You are a helpful AI banking assistant. "
+            
+            if context_data.get('locations'):
+                context_prompt += f"Location data: {json.dumps(context_data['locations'][:3], indent=2)}\n"
+            
+            if context_data.get('currency_rates'):
+                context_prompt += f"Currency rates: {json.dumps(context_data['currency_rates'], indent=2)}\n"
+            
+            full_prompt = f"{context_prompt}\n\nUser question: {message}\n\nPlease provide a helpful response based on the available data."
+            
+            # Generate response using the new Gemini client
+            response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=[{'parts': [{'text': full_prompt}]}]
+            )
+            
+            return response.text
+        except Exception as e:
+            logger.error(f"Error generating AI response: {e}")
+            return "I apologize, but I'm having trouble processing your request right now. Please try again."
+    
+    @staticmethod
+    async def process_message(message: str, context: List[Dict[str, str]] = None) -> ChatResponse:
+        """Process incoming chat message"""
         try:
             # Detect intent
             intent = RAGProcessor.detect_intent(message)
             
-            # Prepare augmented prompt
-            augmented_prompt = message
+            # Enrich context with real-time data
+            context_data = await RAGProcessor.enrich_context(intent)
+            
+            # Generate response
             data_sources = []
             
-            # Enrich context if needed
-            if intent['requires_data']:
-                context_data = await RAGProcessor.enrich_context(intent)
-                
-                # Format context for Gemini
-                if intent['type'] == 'location':
-                    locations = context_data.get('locations', [])
-                    location_info = ChatService.format_location_response(
-                        locations, 
-                        intent.get('subtype', 'service')
-                    )
-                    augmented_prompt = f"""
-User Query: {message}
-
-Available Location Data:
-{location_info}
-
-Please provide a helpful response about the locations, mentioning specific details from the data above.
-Focus on being helpful and informative. If the user seems to be looking for a specific location,
-help them find the most relevant one based on the data.
-"""
-                    data_sources.append("Location Services API")
-                    
-                elif intent['type'] == 'currency':
-                    rates = context_data.get('currency_rates', {})
-                    currency_info = ChatService.format_currency_response(rates)
-                    augmented_prompt = f"""
-User Query: {message}
-
-Current Exchange Rates:
-{currency_info}
-
-Please provide a helpful response about the currency rates. If the user is asking about
-a specific currency conversion, calculate it for them using the rates above.
-"""
-                    data_sources.append("Central Bank Exchange Rates")
-            
-            # Add conversation context
-            if context:
-                context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in context[-3:]])
-                augmented_prompt = f"Previous conversation:\n{context_str}\n\n{augmented_prompt}"
-            
-            # Generate response with new Gemini API
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=augmented_prompt
-            )
+            if intent['type'] == 'location' and context_data.get('locations'):
+                response_text = ChatService.format_location_response(
+                    context_data['locations'], 
+                    intent.get('subtype', 'location')
+                )
+                data_sources.append("Kapital Bank Location API")
+            elif intent['type'] == 'currency' and context_data.get('currency_rates'):
+                response_text = ChatService.format_currency_response(context_data['currency_rates'])
+                data_sources.append("Central Bank of Azerbaijan")
+            else:
+                response_text = await ChatService.generate_ai_response(message, context_data)
+                if context_data:
+                    data_sources.append("External APIs")
             
             return ChatResponse(
-                response=response.text,
+                response=response_text,
                 data_sources=data_sources
             )
             
