@@ -1,34 +1,27 @@
-# requirements.txt
-
-# FastAPI and dependencies
+# Core FastAPI dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
-python-dotenv==1.0.0
-
-# Templating
 jinja2==3.1.2
 
-# Google Gemini AI
+# HTTP client for external APIs
+httpx==0.25.2
+
+# AI integration (optional)
 google-generativeai==0.3.2
+google-genai
 
-# Redis for caching
-redis==5.0.1
-
-# HTTP client
-aiohttp==3.9.1
+# Caching
+cachetools==5.3.2
 
 # Data validation
-pydantic==2.5.2
-pydantic-settings==2.1.0
+pydantic==2.5.0
 
-# CORS support
-python-jose[cryptography]==3.3.0
+# Development dependencies (optional)
+python-dotenv==1.0.0
 
-# Logging
-python-json-logger==2.0.7
+# Production server
+gunicorn==21.2.0
 
-# Development
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
+# math and data processing
+numpy

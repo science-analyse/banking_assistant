@@ -1,160 +1,168 @@
-// static/js/app.js
+// Banking AI Assistant - Frontend JavaScript
+(function() {
+    'use strict';
 
-// Geolocation Manager
-class GeolocationManager {
-    constructor() {
-        this.location = null;
-        this.error = null;
-        this.watchId = null;
-    }
+    // DOM Elements
+    const elements = {
+        chatForm: document.getElementById('chatForm'),
+        messageInput: document.getElementById('messageInput'),
+        sendButton: document.getElementById('sendButton'),
+        chatMessages: document.getElementById('chatMessages'),
+        connectionStatus: document.getElementById('connectionStatus'),
+        themeToggle: document.getElementById('themeToggle'),
+        menuToggle: document.getElementById('menuToggle'),
+        loadingOverlay: document.getElementById('loadingOverlay')
+    };
 
-    async init() {
-        if (!navigator.geolocation) {
-            this.error = 'Geolocation is not supported by your browser';
-            return false;
-        }
+    // Application State
+    const state = {
+        websocket: null,
+        isConnected: false,
+        messageHistory: [],
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5,
+        reconnectDelay: 1000,
+        isTyping: false
+    };
 
-        return new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    this.location = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                        timestamp: new Date().toISOString()
-                    };
-                    this.cacheLocation();
-                    resolve(true);
-                },
-                (error) => {
-                    this.error = error.message;
-                    this.loadCachedLocation();
-                    resolve(false);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 300000 // 5 minutes
-                }
-            );
-        });
-    }
-
-    startWatching() {
-        if (!navigator.geolocation) return;
-
-        this.watchId = navigator.geolocation.watchPosition(
-            (position) => {
-                this.location = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                    accuracy: position.coords.accuracy,
-                    timestamp: new Date().toISOString()
-                };
-                this.cacheLocation();
-            },
-            (error) => {
-                console.error('Location watch error:', error);
-            },
-            {
-                enableHighAccuracy: false,
-                timeout: 10000,
-                maximumAge: 300000
+    // Initialize Application
+    function init() {
+        setupEventListeners();
+        setupWebSocket();
+        loadTheme();
+        setupServiceWorker();
+        focusInput();
+        
+        // Prevent body scroll on mobile
+        document.body.addEventListener('touchmove', function(e) {
+            if (!e.target.closest('.chat-messages') && !e.target.closest('.quick-actions-content')) {
+                e.preventDefault();
             }
-        );
+        }, { passive: false });
     }
 
-    stopWatching() {
-        if (this.watchId) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = null;
-        }
-    }
-
-    cacheLocation() {
-        if (this.location) {
-            sessionStorage.setItem('userLocation', JSON.stringify(this.location));
-        }
-    }
-
-    loadCachedLocation() {
-        const cached = sessionStorage.getItem('userLocation');
-        if (cached) {
-            this.location = JSON.parse(cached);
-        }
-    }
-
-    getLocation() {
-        return this.location;
-    }
-}
-
-// Chat Application
-class ChatApp {
-    constructor() {
-        this.geoManager = new GeolocationManager();
-        this.isLoading = false;
-        this.messageInput = document.getElementById('message-input');
-        this.chatForm = document.getElementById('chat-form');
-        this.chatMessages = document.getElementById('chat-messages');
-        this.locationStatus = document.getElementById('location-status');
-        this.locationText = document.getElementById('location-text');
+    // Event Listeners
+    function setupEventListeners() {
+        // Chat form submission
+        elements.chatForm.addEventListener('submit', handleFormSubmit);
         
-        this.init();
+        // Theme toggle
+        elements.themeToggle.addEventListener('click', toggleTheme);
+        
+        // Menu toggle (for mobile)
+        elements.menuToggle.addEventListener('click', toggleMenu);
+        
+        // Auto-resize input
+        elements.messageInput.addEventListener('input', handleInputResize);
+        
+        // Handle Enter key
+        elements.messageInput.addEventListener('keydown', handleKeyDown);
     }
 
-    async init() {
-        // Initialize geolocation
-        const locationSuccess = await this.geoManager.init();
-        this.updateLocationStatus(locationSuccess);
-        
-        // Start watching location
-        this.geoManager.startWatching();
-        
-        // Set up event listeners
-        this.chatForm.addEventListener('submit', (e) => this.handleSubmit(e));
-        
-        // Focus on input
-        this.messageInput.focus();
-    }
-
-    updateLocationStatus(success) {
-        if (success) {
-            this.locationStatus.classList.add('location-active');
-            this.locationText.textContent = 'Location detected';
-        } else {
-            this.locationStatus.classList.add('location-error');
-            this.locationText.textContent = 'Location unavailable';
-        }
-    }
-
-    detectLocationContext(message) {
-        const locationKeywords = [
-            'nearest', 'closest', 'near me', 'branch', 'atm', 'location',
-            'where', 'find', 'address', 'hours', 'open', 'distance',
-            'directions', 'navigate', 'how far', 'nearby'
-        ];
-        
-        const lowerMessage = message.toLowerCase();
-        return locationKeywords.some(keyword => lowerMessage.includes(keyword));
-    }
-
-    async handleSubmit(e) {
-        e.preventDefault();
-        
-        if (this.isLoading || !this.messageInput.value.trim()) return;
-        
-        const message = this.messageInput.value.trim();
-        this.addMessage(message, true);
-        this.messageInput.value = '';
-        
-        // Show loading
-        this.showLoading();
+    // WebSocket Setup
+    function setupWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
         
         try {
-            const isLocationQuery = this.detectLocationContext(message);
-            const location = this.geoManager.getLocation();
+            state.websocket = new WebSocket(wsUrl);
             
+            state.websocket.onopen = handleWebSocketOpen;
+            state.websocket.onmessage = handleWebSocketMessage;
+            state.websocket.onclose = handleWebSocketClose;
+            state.websocket.onerror = handleWebSocketError;
+        } catch (error) {
+            console.error('WebSocket creation failed:', error);
+            fallbackToHTTP();
+        }
+    }
+
+    // WebSocket Event Handlers
+    function handleWebSocketOpen() {
+        console.log('WebSocket connected');
+        state.isConnected = true;
+        state.reconnectAttempts = 0;
+        updateConnectionStatus(true);
+    }
+
+    function handleWebSocketMessage(event) {
+        try {
+            const data = JSON.parse(event.data);
+            displayMessage(data.response, 'assistant', data.data_sources);
+            hideTypingIndicator();
+        } catch (error) {
+            console.error('Failed to parse WebSocket message:', error);
+        }
+    }
+
+    function handleWebSocketClose() {
+        console.log('WebSocket disconnected');
+        state.isConnected = false;
+        updateConnectionStatus(false);
+        attemptReconnect();
+    }
+
+    function handleWebSocketError(error) {
+        console.error('WebSocket error:', error);
+        fallbackToHTTP();
+    }
+
+    // Reconnection Logic
+    function attemptReconnect() {
+        if (state.reconnectAttempts < state.maxReconnectAttempts) {
+            state.reconnectAttempts++;
+            console.log(`Attempting to reconnect... (${state.reconnectAttempts}/${state.maxReconnectAttempts})`);
+            
+            setTimeout(() => {
+                setupWebSocket();
+            }, state.reconnectDelay * state.reconnectAttempts);
+        } else {
+            console.log('Max reconnection attempts reached. Falling back to HTTP.');
+            fallbackToHTTP();
+        }
+    }
+
+    // Form Submission Handler
+    async function handleFormSubmit(event) {
+        event.preventDefault();
+        
+        const message = elements.messageInput.value.trim();
+        if (!message) return;
+        
+        // Display user message
+        displayMessage(message, 'user');
+        
+        // Clear input
+        elements.messageInput.value = '';
+        handleInputResize();
+        
+        // Show typing indicator
+        showTypingIndicator();
+        
+        // Send message
+        if (state.isConnected && state.websocket.readyState === WebSocket.OPEN) {
+            sendViaWebSocket(message);
+        } else {
+            await sendViaHTTP(message);
+        }
+    }
+
+    // Send message via WebSocket
+    function sendViaWebSocket(message) {
+        try {
+            state.websocket.send(JSON.stringify({
+                message: message,
+                context: state.messageHistory.slice(-5) // Send last 5 messages for context
+            }));
+        } catch (error) {
+            console.error('Failed to send WebSocket message:', error);
+            sendViaHTTP(message);
+        }
+    }
+
+    // Send message via HTTP (fallback)
+    async function sendViaHTTP(message) {
+        try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -162,11 +170,7 @@ class ChatApp {
                 },
                 body: JSON.stringify({
                     message: message,
-                    context: {
-                        hasLocation: !!location,
-                        isLocationQuery: isLocationQuery,
-                        userLocation: location
-                    }
+                    context: state.messageHistory.slice(-5)
                 })
             });
 
@@ -175,101 +179,250 @@ class ChatApp {
             }
 
             const data = await response.json();
-            this.hideLoading();
-            
-            // Add bot response
-            this.addBotMessage(data);
-            
+            displayMessage(data.response, 'assistant', data.data_sources);
+            hideTypingIndicator();
         } catch (error) {
-            console.error('Error:', error);
-            this.hideLoading();
-            this.addMessage('I apologize, but I encountered an error. Please try again.', false);
+            console.error('Failed to send HTTP message:', error);
+            displayError('Failed to send message. Please try again.');
+            hideTypingIndicator();
         }
     }
 
-    addMessage(text, isUser) {
-        const template = isUser ? 
-            document.getElementById('user-message-template') : 
-            document.getElementById('bot-message-template');
+    // Display Message in Chat
+    function displayMessage(content, sender, dataSources = []) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
         
-        const messageEl = template.content.cloneNode(true);
-        messageEl.querySelector('p').textContent = text;
+        // Create avatar
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.innerHTML = sender === 'user' ? getUserAvatar() : getAssistantAvatar();
         
-        this.chatMessages.appendChild(messageEl);
-        this.scrollToBottom();
-    }
-
-    addBotMessage(data) {
-        const template = document.getElementById('bot-message-template');
-        const messageEl = template.content.cloneNode(true);
-        const contentDiv = messageEl.querySelector('.message-content');
+        // Create content
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
         
-        // Add main message
-        const p = document.createElement('p');
-        p.textContent = data.message;
-        contentDiv.appendChild(p);
+        // Process content (handle markdown, links, etc.)
+        contentDiv.innerHTML = processMessageContent(content);
         
-        // Add branch info if available
-        if (data.branchInfo) {
-            const branchTemplate = document.getElementById('branch-info-template');
-            const branchEl = branchTemplate.content.cloneNode(true);
-            
-            branchEl.querySelector('.location-name').textContent = data.branchInfo.name;
-            branchEl.querySelector('.location-distance span').textContent = `${data.branchInfo.distance} km`;
-            branchEl.querySelector('.location-address span').textContent = data.branchInfo.address;
-            branchEl.querySelector('.location-hours span').textContent = data.branchInfo.hours;
-            
-            contentDiv.appendChild(branchEl);
+        // Add data sources if available
+        if (dataSources && dataSources.length > 0) {
+            const sourcesDiv = document.createElement('div');
+            sourcesDiv.className = 'data-sources';
+            sourcesDiv.innerHTML = `
+                <span class="sources-label">Sources:</span>
+                ${dataSources.map(source => `<span class="source-tag">${source}</span>`).join('')}
+            `;
+            contentDiv.appendChild(sourcesDiv);
         }
         
-        // Add ATM info if available
-        if (data.atmInfo && data.atmInfo.length > 0) {
-            const atmTemplate = document.getElementById('atm-info-template');
-            const atmEl = atmTemplate.content.cloneNode(true);
-            const atmList = atmEl.querySelector('.atm-list');
-            
-            data.atmInfo.forEach(atm => {
-                const itemTemplate = document.getElementById('atm-item-template');
-                const itemEl = itemTemplate.content.cloneNode(true);
-                
-                itemEl.querySelector('.atm-location').textContent = `${atm.location} (${atm.distance.toFixed(1)} km)`;
-                const statusEl = itemEl.querySelector('.atm-status');
-                statusEl.textContent = atm.status;
-                statusEl.className = `atm-status ${atm.status === 'Operational' ? 'status-operational' : 'status-offline'}`;
-                
-                atmList.appendChild(itemEl);
-            });
-            
-            contentDiv.appendChild(atmEl);
-        }
+        // Assemble message
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
         
-        this.chatMessages.appendChild(messageEl);
-        this.scrollToBottom();
+        // Add to chat
+        elements.chatMessages.appendChild(messageDiv);
+        
+        // Add to history
+        state.messageHistory.push({ role: sender, content: content });
+        
+        // Scroll to bottom
+        scrollToBottom();
     }
 
-    showLoading() {
-        this.isLoading = true;
-        const loadingTemplate = document.getElementById('loading-template');
-        const loadingEl = loadingTemplate.content.cloneNode(true);
-        loadingEl.firstElementChild.id = 'loading-message';
-        this.chatMessages.appendChild(loadingEl);
-        this.scrollToBottom();
+    // Display Error Message
+    function displayError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message error';
+        errorDiv.innerHTML = `
+            <div class="message-content">
+                <p class="error-message">${message}</p>
+            </div>
+        `;
+        elements.chatMessages.appendChild(errorDiv);
+        scrollToBottom();
     }
 
-    hideLoading() {
-        this.isLoading = false;
-        const loadingMessage = document.getElementById('loading-message');
-        if (loadingMessage) {
-            loadingMessage.remove();
+    // Typing Indicator
+    function showTypingIndicator() {
+        if (state.isTyping) return;
+        
+        state.isTyping = true;
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'typingIndicator';
+        typingDiv.className = 'message assistant typing';
+        typingDiv.innerHTML = `
+            <div class="message-avatar">${getAssistantAvatar()}</div>
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+        elements.chatMessages.appendChild(typingDiv);
+        scrollToBottom();
+    }
+
+    function hideTypingIndicator() {
+        state.isTyping = false;
+        const typingIndicator = document.getElementById('typingIndicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
         }
     }
 
-    scrollToBottom() {
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    // Process Message Content
+    function processMessageContent(content) {
+        // Escape HTML
+        content = escapeHtml(content);
+        
+        // Convert markdown-style formatting
+        content = content
+            // Bold
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Italic
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // Code blocks
+            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+            // Inline code
+            .replace(/`(.*?)`/g, '<code>$1</code>')
+            // Links
+            .replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+            // Line breaks
+            .replace(/\n/g, '<br>');
+        
+        return content;
     }
-}
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    new ChatApp();
-});
+    // Utility Functions
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getUserAvatar() {
+        return `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
+                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z" fill="currentColor"/>
+                <path d="M12 14C7.59 14 4 16.69 4 20V22H20V20C20 16.69 16.41 14 12 14Z" fill="currentColor"/>
+            </svg>
+        `;
+    }
+
+    function getAssistantAvatar() {
+        return `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7V12C2 16.5 4.23 20.68 7.62 23.15L12 24L16.38 23.15C19.77 20.68 22 16.5 22 12V7L12 2Z" fill="currentColor" opacity="0.2"/>
+                <path d="M12 2L2 7V12C2 16.5 4.23 20.68 7.62 23.15L12 24L16.38 23.15C19.77 20.68 22 16.5 22 12V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `;
+    }
+
+    function scrollToBottom() {
+        const messagesContainer = elements.chatMessages;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Also ensure the page doesn't jump around
+        window.scrollTo(0, 0);
+    }
+
+    function focusInput() {
+        elements.messageInput.focus();
+    }
+
+    // Connection Status
+    function updateConnectionStatus(isConnected) {
+        const statusDot = elements.connectionStatus.querySelector('.status-dot');
+        const statusText = elements.connectionStatus.querySelector('.status-text');
+        
+        if (isConnected) {
+            statusDot.classList.add('connected');
+            statusText.textContent = 'Connected';
+        } else {
+            statusDot.classList.remove('connected');
+            statusText.textContent = 'Connecting...';
+        }
+    }
+
+    // Theme Management
+    function loadTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.className = savedTheme;
+        updateThemeIcon(savedTheme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.body.className;
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        document.body.className = newTheme;
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    }
+
+    function updateThemeIcon(theme) {
+        const sunIcon = elements.themeToggle.querySelector('.sun-icon');
+        const moonIcon = elements.themeToggle.querySelector('.moon-icon');
+        
+        if (theme === 'dark') {
+            sunIcon.style.display = 'block';
+            moonIcon.style.display = 'none';
+        } else {
+            sunIcon.style.display = 'none';
+            moonIcon.style.display = 'block';
+        }
+    }
+
+    // Mobile Menu Toggle
+    function toggleMenu() {
+        document.body.classList.toggle('menu-open');
+    }
+
+    // Input Auto-resize
+    function handleInputResize() {
+        elements.messageInput.style.height = 'auto';
+        elements.messageInput.style.height = Math.min(elements.messageInput.scrollHeight, 120) + 'px';
+    }
+
+    // Handle Enter Key
+    function handleKeyDown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            elements.chatForm.dispatchEvent(new Event('submit'));
+        }
+    }
+
+    // Quick Message Function (called from HTML)
+    window.sendQuickMessage = function(message) {
+        elements.messageInput.value = message;
+        elements.chatForm.dispatchEvent(new Event('submit'));
+    };
+
+    // Service Worker Setup
+    function setupServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(registration => console.log('ServiceWorker registered:', registration))
+                .catch(error => console.log('ServiceWorker registration failed:', error));
+        }
+    }
+
+    // Fallback to HTTP
+    function fallbackToHTTP() {
+        console.log('Using HTTP fallback for communication');
+        state.isConnected = false;
+        updateConnectionStatus(false);
+    }
+
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
