@@ -11,37 +11,51 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon_io/favicon-16x16.png">
     <link rel="manifest" href="/static/favicon_io/site.webmanifest">
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="/static/css/styles.css">
-    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
         /* Custom scrollbar */
         .chat-container::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
         
         .chat-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 10px;
         }
         
         .chat-container::-webkit-scrollbar-thumb {
-            background: #888;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
         }
         
         .chat-container::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Glassmorphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Gradient backgrounds */
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-bg-alt {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
         
         /* Message animations */
-        @keyframes fadeIn {
+        @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
@@ -49,213 +63,531 @@
             }
         }
         
-        .message-fade-in {
-            animation: fadeIn 0.3s ease-out;
+        .message-animation {
+            animation: fadeInUp 0.4s ease-out;
         }
         
-        /* Typing indicator */
+        /* Typing indicator animation */
         .typing-indicator {
             display: inline-flex;
             align-items: center;
-            padding: 8px 12px;
-            background: #e5e7eb;
-            border-radius: 18px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
         }
         
-        .typing-indicator span {
+        .typing-dot {
             height: 8px;
             width: 8px;
-            background: #6b7280;
+            background: #6366f1;
             border-radius: 50%;
             display: inline-block;
             margin: 0 2px;
             animation: typing 1.4s infinite;
         }
         
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
         
         @keyframes typing {
             0%, 60%, 100% {
                 transform: translateY(0);
+                opacity: 0.4;
             }
             30% {
-                transform: translateY(-10px);
+                transform: translateY(-12px);
+                opacity: 1;
             }
+        }
+        
+        /* Hover effects */
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Chat bubble styles */
+        .chat-bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+        
+        .chat-bubble.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 6px;
+        }
+        
+        .chat-bubble.assistant {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1f2937;
+            border-bottom-left-radius: 6px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Input focus states */
+        .input-focus {
+            transition: all 0.3s ease;
+        }
+        
+        .input-focus:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #667eea;
+            border-color: #667eea;
         }
         
         /* Quick action buttons */
-        .quick-action {
-            transition: all 0.2s ease;
+        .quick-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
         }
         
-        .quick-action:hover {
+        .quick-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .chat-bubble {
+                max-width: 90%;
+            }
+            
+            .quick-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .quick-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .chat-bubble.assistant {
+                background: rgba(31, 41, 55, 0.9);
+                color: #f9fafb;
+                border-color: rgba(75, 85, 99, 0.3);
+            }
+        }
+        
+        /* Ensure text is always visible */
+        input, textarea, button, .chat-bubble {
+            color: inherit !important;
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        
+        /* Fix for invisible text issue */
+        * {
+            -webkit-text-fill-color: initial !important;
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <svg class="h-8 w-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                    </svg>
-                    <h1 class="text-xl font-semibold text-gray-900">AI Banking Assistant</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-500">Powered by AI</span>
-                    <div class="h-2 w-2 bg-green-400 rounded-full animate-pulse"></div>
-                </div>
-            </div>
-        </div>
-    </header>
-    
+<body class="min-h-screen gradient-bg">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white text-black px-4 py-2 rounded-lg z-50">
+        Skip to main content
+    </a>
+
     <!-- Main Container -->
-    <div class="max-w-4xl mx-auto p-4">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="glass p-4 md:p-6 border-b border-white/20">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 gradient-bg-alt rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold text-white">AI Banking Assistant</h1>
+                        <p class="text-white/80 text-sm">Your intelligent financial companion</p>
+                    </div>
+                </div>
+                
+                <!-- Status indicator -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="text-white/80 text-sm hidden md:block">Online</span>
+                </div>
+            </div>
+        </header>
+
         <!-- Quick Actions -->
-        <div class="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button class="quick-action bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="sendQuickMessage('Where is the nearest branch?')">
-                <svg class="h-6 w-6 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
-                <span class="text-sm text-gray-700">Find Branch</span>
-            </button>
-            
-            <button class="quick-action bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="sendQuickMessage('Show me ATM locations')">
-                <svg class="h-6 w-6 mx-auto mb-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                </svg>
-                <span class="text-sm text-gray-700">ATM Locations</span>
-            </button>
-            
-            <button class="quick-action bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="sendQuickMessage('What are today\'s currency exchange rates?')">
-                <svg class="h-6 w-6 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-sm text-gray-700">Exchange Rates</span>
-            </button>
-            
-            <button class="quick-action bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="sendQuickMessage('Where can I find payment terminals?')">
-                <svg class="h-6 w-6 mx-auto mb-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-                <span class="text-sm text-gray-700">Payment Terminals</span>
-            </button>
+        <div class="glass border-b border-white/20 p-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="quick-actions flex flex-wrap gap-2 md:gap-3">
+                    <button onclick="sendQuickMessage('Check my account balance')" 
+                            class="quick-btn px-4 py-2 rounded-full text-white text-sm hover-lift flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        <span>Balance</span>
+                    </button>
+                    
+                    <button onclick="sendQuickMessage('Show recent transactions')" 
+                            class="quick-btn px-4 py-2 rounded-full text-white text-sm hover-lift flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <span>Transactions</span>
+                    </button>
+                    
+                    <button onclick="sendQuickMessage('Transfer money')" 
+                            class="quick-btn px-4 py-2 rounded-full text-white text-sm hover-lift flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                        <span>Transfer</span>
+                    </button>
+                    
+                    <button onclick="sendQuickMessage('Currency exchange rates')" 
+                            class="quick-btn px-4 py-2 rounded-full text-white text-sm hover-lift flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        <span class="hidden md:inline">Exchange Rates</span>
+                        <span class="md:hidden">Rates</span>
+                    </button>
+                </div>
+            </div>
         </div>
-        
-        <!-- Chat Container -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+
+        <!-- Main Chat Area -->
+        <main id="main-content" class="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4 md:p-6">
             <!-- Chat Messages -->
-            <div id="chatMessages" class="chat-container h-96 overflow-y-auto p-4 space-y-4">
-                <!-- Welcome Message -->
-                <div class="flex items-start message-fade-in">
-                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-3 bg-gray-100 rounded-lg p-3 max-w-md">
-                        <p class="text-sm text-gray-800">
-                            Hello! I'm your AI Banking Assistant. I can help you find:
-                        </p>
-                        <ul class="mt-2 text-sm text-gray-600 list-disc list-inside">
-                            <li>Branch and ATM locations</li>
-                            <li>Current exchange rates</li>
-                            <li>Payment terminals</li>
-                            <li>Banking services information</li>
-                        </ul>
-                        <p class="mt-2 text-sm text-gray-800">
-                            How can I assist you today?
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Typing Indicator (Hidden by default) -->
-            <div id="typingIndicator" class="hidden px-4 pb-2">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <div class="typing-indicator">
-                            <span></span>
-                            <span></span>
-                            <span></span>
+            <div id="chatMessages" class="chat-container flex-1 space-y-4 overflow-y-auto mb-4 pr-2">
+                <!-- Welcome message -->
+                <div class="flex justify-center">
+                    <div class="chat-bubble assistant text-center message-animation">
+                        <div class="flex items-center justify-center mb-2">
+                            <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
                         </div>
+                        <p class="font-semibold text-gray-800 mb-1">Welcome to AI Banking Assistant!</p>
+                        <p class="text-gray-600 text-sm">I'm here to help you with your banking needs. Ask me about your balance, transactions, transfers, or currency rates.</p>
+                    </div>
+                </div>
+                
+                <!-- Typing indicator (hidden by default) -->
+                <div id="typingIndicator" class="hidden flex justify-start">
+                    <div class="typing-indicator">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
                     </div>
                 </div>
             </div>
-            
-            <!-- Input Area -->
-            <div class="border-t border-gray-200 p-4">
-                <form id="chatForm" class="flex space-x-2">
-                    <input 
-                        type="text" 
-                        id="messageInput" 
-                        placeholder="Ask me anything about banking services..."
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        autocomplete="off"
-                    >
+
+            <!-- Chat Input -->
+            <form id="chatForm" class="glass rounded-2xl p-3 md:p-4 border border-white/30">
+                <div class="flex items-end space-x-3">
+                    <div class="flex-1">
+                        <label for="messageInput" class="sr-only">Type your message</label>
+                        <textarea 
+                            id="messageInput" 
+                            rows="1"
+                            placeholder="Type your message here..."
+                            class="w-full bg-transparent text-white placeholder-white/70 resize-none border-none outline-none input-focus text-base"
+                            style="min-height: 24px; max-height: 120px;"
+                        ></textarea>
+                    </div>
                     <button 
                         type="submit" 
                         id="sendButton"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 flex items-center space-x-2"
+                        class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-xl transition-all duration-300 hover-lift focus:outline-none focus:ring-2 focus:ring-white/50"
+                        aria-label="Send message"
                     >
-                        <span>Send</span>
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                         </svg>
                     </button>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Info Cards -->
-        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div class="flex items-center mb-2">
-                    <svg class="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <h3 class="text-sm font-semibold text-blue-900">Real-time Information</h3>
                 </div>
-                <p class="text-sm text-blue-700">
-                    I provide up-to-date information about branch locations, ATM availability, and current exchange rates.
-                </p>
-            </div>
-            
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div class="flex items-center mb-2">
-                    <svg class="h-5 w-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                    <h3 class="text-sm font-semibold text-green-900">Secure & Private</h3>
-                </div>
-                <p class="text-sm text-green-700">
-                    Your conversations are processed securely and we don't store any personal information.
-                </p>
-            </div>
-        </div>
+            </form>
+        </main>
+
+        <!-- Footer -->
+        <footer class="glass border-t border-white/20 p-4 text-center">
+            <p class="text-white/70 text-sm">
+                Powered by AI • Secure & Private • 
+                <span class="text-white/90 font-medium">24/7 Available</span>
+            </p>
+        </footer>
     </div>
-    
-    <!-- Footer -->
-    <footer class="mt-8 text-center text-sm text-gray-500">
-        <p>© 2025 AI Banking Assistant. All rights reserved.</p>
-    </footer>
-    
-    <!-- JavaScript -->
-    <script src="/static/js/app.js"></script>
+
+    <script>
+        // Global variables
+        let conversationContext = [];
+        let isProcessing = false;
+
+        // DOM elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const chatForm = document.getElementById('chatForm');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // WebSocket connection
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
+        function connectWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                reconnectAttempts = 0;
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                hideTypingIndicator();
+                addMessage(data.response, 'assistant', data.data_sources);
+                isProcessing = false;
+                enableInput();
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(() => {
+                        console.log(`Reconnection attempt ${reconnectAttempts}`);
+                        connectWebSocket();
+                    }, 3000 * reconnectAttempts);
+                }
+            };
+        }
+
+        // Connect WebSocket on load
+        connectWebSocket();
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = '24px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Utility functions
+        function formatTime(date) {
+            return date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function formatMessage(text) {
+            // Convert markdown-style bold to HTML
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // Convert line breaks to HTML
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+
+        // Add message to chat
+        function addMessage(content, role, dataSources = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-animation';
+            
+            if (role === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-end">
+                        <div class="chat-bubble user">
+                            <div class="text-white">${escapeHtml(content)}</div>
+                            <p class="text-white/70 text-xs mt-1">${formatTime(new Date())}</p>
+                        </div>
+                    </div>
+                `;
+            } else if (role === 'assistant') {
+                let dataSourcesHtml = '';
+                if (dataSources && dataSources.length > 0) {
+                    dataSourcesHtml = `
+                        <div class="mt-2 pt-2 border-t border-gray-200">
+                            <p class="text-xs text-gray-500">Sources: ${dataSources.join(', ')}</p>
+                        </div>
+                    `;
+                }
+                
+                messageDiv.innerHTML = `
+                    <div class="flex justify-start">
+                        <div class="chat-bubble assistant">
+                            <div class="text-gray-800">${formatMessage(content)}</div>
+                            <p class="text-gray-500 text-xs mt-1">${formatTime(new Date())}</p>
+                            ${dataSourcesHtml}
+                        </div>
+                    </div>
+                `;
+            } else if (role === 'system') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-center">
+                        <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg p-3 max-w-md text-center">
+                            <p class="text-sm">${escapeHtml(content)}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.classList.remove('hidden');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.classList.add('hidden');
+        }
+
+        function disableInput() {
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            sendButton.classList.add('opacity-50');
+        }
+
+        function enableInput() {
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            sendButton.classList.remove('opacity-50');
+            messageInput.focus();
+        }
+
+        // Send message function
+        async function sendMessage(message) {
+            if (!message.trim() || isProcessing) return;
+            
+            isProcessing = true;
+            disableInput();
+            
+            // Add user message to UI
+            addMessage(message, 'user');
+            
+            // Clear input
+            messageInput.value = '';
+            messageInput.style.height = '24px';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Add to context
+            conversationContext.push({ role: 'user', content: message });
+            
+            try {
+                // Try WebSocket first
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ message: message }));
+                } else {
+                    // Fallback to HTTP API
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            context: conversationContext.slice(-5)
+                        }),
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    hideTypingIndicator();
+                    addMessage(data.response, 'assistant', data.data_sources);
+                    
+                    // Add to context
+                    conversationContext.push({ role: 'assistant', content: data.response });
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                hideTypingIndicator();
+                addMessage('Sorry, I encountered an error. Please try again.', 'system');
+            } finally {
+                isProcessing = false;
+                enableInput();
+            }
+        }
+
+        // Quick message function
+        function sendQuickMessage(message) {
+            messageInput.value = message;
+            sendMessage(message);
+        }
+
+        // Event listeners
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+            }
+        });
+
+        // Allow Enter key to send message (Shift+Enter for new line)
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                }
+            }
+        });
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            messageInput.focus();
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && ws && ws.readyState !== WebSocket.OPEN) {
+                connectWebSocket();
+            }
+        });
+    </script>
 </body>
 </html>
