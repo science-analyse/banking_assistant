@@ -237,6 +237,7 @@ class EnhancedRAGProcessor:
     def __init__(self):
         self.intent_patterns = self._load_intent_patterns()
         self.entity_extractors = self._load_entity_extractors()
+        self.landmark_coordinates = self._load_landmark_coordinates()
         
     def _load_intent_patterns(self) -> Dict[str, Dict[str, Any]]:
         """Load intent patterns with multi-language support"""
@@ -285,7 +286,46 @@ class EnhancedRAGProcessor:
             'amount': re.compile(r'\b\d+(?:\.\d+)?\s*(?:AZN|USD|EUR|GBP|RUB|azn|usd|eur|gbp|rub)?\b'),
             'phone': re.compile(r'\b(?:\+994|0)(?:50|51|55|70|77)\d{7}\b'),
             'time': re.compile(r'\b(?:\d{1,2}:\d{2}|today|tomorrow|yesterday|сегодня|завтра|вчера|bu gün|sabah|dünən)\b', re.IGNORECASE),
-            'location_reference': re.compile(r'\b(?:near|close to|around|by|вблизи|около|возле|yaxın|yanında)\s+(.+?)(?:\.|,|$)', re.IGNORECASE)
+            'location_reference': re.compile(r'\b(?:near|close to|around|by|at|in|вблизи|около|возле|yaxın|yanında)\s+(.+?)(?:\.|,|$)', re.IGNORECASE)
+        }
+    
+    def _load_landmark_coordinates(self) -> Dict[str, Dict[str, float]]:
+        """Load known landmarks and their coordinates in Baku"""
+        return {
+            # Port Baku area
+            'port baku': {'lat': 40.3667, 'lon': 49.8352},
+            'port baku mall': {'lat': 40.3667, 'lon': 49.8352},
+            'second cup': {'lat': 40.3667, 'lon': 49.8352},  # Assuming it's in Port Baku
+            
+            # Major shopping centers
+            'ganjlik mall': {'lat': 40.4093, 'lon': 49.8671},
+            '28 mall': {'lat': 40.3776, 'lon': 49.8494},
+            'park bulvar': {'lat': 40.3643, 'lon': 49.8306},
+            'deniz mall': {'lat': 40.3608, 'lon': 49.8356},
+            
+            # Famous locations
+            'fountain square': {'lat': 40.3703, 'lon': 49.8337},
+            'nizami street': {'lat': 40.3717, 'lon': 49.8328},
+            'tofiq bahramov stadium': {'lat': 40.3742, 'lon': 49.8194},
+            'haydar aliyev center': {'lat': 40.3958, 'lon': 49.8678},
+            'flame towers': {'lat': 40.3595, 'lon': 49.8266},
+            'icherisheher': {'lat': 40.3664, 'lon': 49.8373},
+            'old city': {'lat': 40.3664, 'lon': 49.8373},
+            
+            # Metro stations
+            'sahil metro': {'lat': 40.3722, 'lon': 49.8489},
+            'icheri sheher metro': {'lat': 40.3717, 'lon': 49.8375},
+            '28 may metro': {'lat': 40.3776, 'lon': 49.8494},
+            'ganjlik metro': {'lat': 40.4093, 'lon': 49.8671},
+            'nariman narimanov metro': {'lat': 40.4026, 'lon': 49.8746},
+            
+            # Districts
+            'yasamal': {'lat': 40.3825, 'lon': 49.8433},
+            'nasimi': {'lat': 40.3936, 'lon': 49.8294},
+            'sabail': {'lat': 40.3633, 'lon': 49.8314},
+            'binagadi': {'lat': 40.4652, 'lon': 49.8293},
+            'surakhani': {'lat': 40.4147, 'lon': 50.0047},
+            'khatai': {'lat': 40.3817, 'lon': 49.9467}
         }
     
     async def analyze_query(self, message: str, user_context: Dict[str, Any] = None) -> QueryAnalysis:
@@ -297,6 +337,20 @@ class EnhancedRAGProcessor:
         # Detect language
         language = self._detect_language(message)
         extracted_entities['language'] = language
+        
+        # Extract location references and landmarks
+        location_match = self.entity_extractors['location_reference'].search(message)
+        if location_match:
+            location_text = location_match.group(1).lower().strip()
+            extracted_entities['location_reference'] = location_text
+            
+            # Check for known landmarks
+            for landmark, coords in self.landmark_coordinates.items():
+                if landmark in location_text or landmark in message_lower:
+                    extracted_entities['detected_landmark'] = landmark
+                    extracted_entities['landmark_coordinates'] = coords
+                    logger.info(f"Detected landmark: {landmark} at {coords}")
+                    break
         
         # Intent detection with scoring
         for intent_type, intent_data in self.intent_patterns.items():
@@ -326,17 +380,21 @@ class EnhancedRAGProcessor:
             primary_intent = 'general'
             confidence = 0.5
         
-        # Extract entities
+        # Extract other entities
         for entity_type, pattern in self.entity_extractors.items():
-            matches = pattern.findall(message)
-            if matches:
-                extracted_entities[entity_type] = matches
+            if entity_type != 'location_reference':  # Already handled
+                matches = pattern.findall(message)
+                if matches:
+                    extracted_entities[entity_type] = matches
         
         # Determine required data types
         data_types = []
         if primary_intent == 'location':
             data_types.append('locations')
-            if user_context and user_context.get('user_location'):
+            # Use landmark coordinates if available, otherwise user location
+            if extracted_entities.get('landmark_coordinates'):
+                extracted_entities['user_location'] = extracted_entities['landmark_coordinates']
+            elif user_context and user_context.get('user_location'):
                 extracted_entities['user_location'] = user_context['user_location']
         elif primary_intent == 'currency':
             data_types.append('currency_rates')
@@ -417,6 +475,12 @@ You provide helpful, accurate, and friendly responses about:
 Always respond in the user's preferred language when possible.
 """
         
+        # Add location context if landmark was detected
+        if analysis.entities.get('detected_landmark'):
+            landmark = analysis.entities['detected_landmark']
+            coords = analysis.entities.get('landmark_coordinates', {})
+            context_prompt += f"\n\nUser is currently at/near: {landmark.title()} (coordinates: {coords.get('lat', 'unknown')}, {coords.get('lon', 'unknown')})"
+        
         # Add retrieved data context
         if retrieved_data.get('locations'):
             locations = retrieved_data['locations']
@@ -428,7 +492,12 @@ Always respond in the user's preferred language when possible.
                     loc_info += f" ({loc['distance_km']} km away)"
                 if loc.get('is_open') is not None:
                     loc_info += f" - {'Open' if loc['is_open'] else 'Closed'}"
+                if loc.get('work_hours_week'):
+                    loc_info += f" - Hours: {loc['work_hours_week']}"
                 context_prompt += f"{loc_info}\n"
+            
+            if len(locations) > 5:
+                context_prompt += f"... and {len(locations) - 5} more locations available"
         
         if retrieved_data.get('currency_rates'):
             rates = retrieved_data['currency_rates']
@@ -456,7 +525,7 @@ Always respond in the user's preferred language when possible.
         
         # Add specific instructions based on intent
         if analysis.intent == 'location':
-            context_prompt += "\nProvide specific location details including address, working hours, and current status."
+            context_prompt += "\n\nIMPORTANT: When the user mentions a specific location or landmark, use that location data to find the nearest branches/ATMs. Provide specific location details including exact address, working hours, current status, and distance from the user's location when available."
         elif analysis.intent == 'currency':
             context_prompt += "\nExplain exchange rates clearly and mention the source (Central Bank of Azerbaijan)."
         
