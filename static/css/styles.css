@@ -76,6 +76,7 @@ body.dark {
 html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
+    height: 100%;
 }
 
 body {
@@ -84,14 +85,18 @@ body {
     color: var(--text-primary);
     background-color: var(--bg-primary);
     transition: background-color var(--transition-base), color var(--transition-base);
+    height: 100%;
+    overflow-x: hidden;
+    position: relative;
 }
 
 /* App Container */
 .app-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    height: 100%;
+    position: relative;
 }
 
 /* Header Styles */
@@ -99,8 +104,10 @@ body {
     background-color: var(--bg-primary);
     border-bottom: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
 }
 
@@ -191,6 +198,11 @@ body {
     padding: var(--spacing-md);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    position: fixed;
+    top: 60px; /* Height of header */
+    left: 0;
+    right: 0;
+    z-index: 90;
 }
 
 .quick-actions-content {
@@ -239,14 +251,19 @@ body {
     width: 100%;
     margin: 0 auto;
     background-color: var(--bg-chat);
+    padding-top: 120px; /* Space for fixed header and quick actions */
+    min-height: calc(100vh - 80px); /* Account for input area */
 }
 
 /* Chat Messages */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: var(--spacing-lg);
+    padding-bottom: 120px; /* Space for fixed input area */
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -441,6 +458,11 @@ body.dark .message.error .message-content {
     background-color: var(--bg-primary);
     border-top: 1px solid var(--border-color);
     padding: var(--spacing-md) var(--spacing-lg);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
 }
 
 .chat-form {
@@ -592,8 +614,13 @@ body.dark .message.error .message-content {
         display: none;
     }
     
+    .chat-container {
+        padding-top: 100px; /* Less space needed on mobile */
+    }
+    
     .chat-messages {
         padding: var(--spacing-md);
+        padding-bottom: 100px; /* Space for fixed input */
     }
     
     .message-content {
@@ -610,6 +637,7 @@ body.dark .message.error .message-content {
     
     .quick-actions-bar {
         padding: var(--spacing-sm);
+        top: 50px; /* Smaller header on mobile */
     }
     
     .quick-action-btn {

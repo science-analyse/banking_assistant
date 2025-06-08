@@ -32,6 +32,13 @@
         loadTheme();
         setupServiceWorker();
         focusInput();
+        
+        // Prevent body scroll on mobile
+        document.body.addEventListener('touchmove', function(e) {
+            if (!e.target.closest('.chat-messages') && !e.target.closest('.quick-actions-content')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     // Event Listeners
@@ -317,7 +324,11 @@
     }
 
     function scrollToBottom() {
-        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        const messagesContainer = elements.chatMessages;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Also ensure the page doesn't jump around
+        window.scrollTo(0, 0);
     }
 
     function focusInput() {
