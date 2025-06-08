@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import httpx
-import google.generativeai as genai
+from google import genai  # Updated import
 from cachetools import TTLCache
 from dotenv import load_dotenv
 
@@ -52,10 +52,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable is required")
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Initialize the model
-model = genai.GenerativeModel('gemini-pro')
+# Initialize the new Gemini client
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Cache for API responses (TTL: 5 minutes)
 api_cache = TTLCache(maxsize=100, ttl=300)
@@ -65,35 +63,29 @@ API_ENDPOINTS = {
     "branch": "https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type=branch",
     "atm": "https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type=atm",
     "cash_in": "https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type=cash_in",
-    "digital_center": "https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type=reqemsal-merkez",
+    "digital_center": "https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type=digital_center",
     "payment_terminal": "https://www.kapitalbank.az/locations/region?is_nfc=false&weekend=false&type=payment_terminal"
 }
 
-# Currency API base URL
+# Currency API configuration
 CURRENCY_API_BASE = "https://www.cbar.az/currencies/{}.xml"
 
-# Request/Response Models
+# Response models
 class ChatRequest(BaseModel):
-    message: str
-    context: Optional[List[Dict[str, str]]] = Field(default_factory=list)
+    message: str = Field(..., description="User message")
+    context: Optional[List[Dict[str, str]]] = Field(default=[], description="Conversation context")
 
 class ChatResponse(BaseModel):
-    response: str
-    data_sources: Optional[List[str]] = Field(default_factory=list)
+    response: str = Field(..., description="AI assistant response")
+    data_sources: List[str] = Field(default=[], description="Data sources used")
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-class LocationFilter(BaseModel):
-    location_type: str = "all"
-    city: Optional[str] = None
-    is_open: Optional[bool] = None
-    has_nfc: Optional[bool] = None
-
-# Utility Functions
-def get_current_date_formatted():
-    """Get current date in format required for currency API"""
+# Utility functions
+def get_current_date_formatted() -> str:
+    """Get current date in DD.MM.YYYY format"""
     return datetime.now().strftime("%d.%m.%Y")
 
-async def fetch_with_retry(url: str, max_retries: int = 3) -> Optional[Any]:
+async def fetch_with_retry(url: str, max_retries: int = 3) -> Optional[httpx.Response]:
     """Fetch URL with retry logic"""
     async with httpx.AsyncClient(timeout=10.0) as client:
         for attempt in range(max_retries):
@@ -101,16 +93,15 @@ async def fetch_with_retry(url: str, max_retries: int = 3) -> Optional[Any]:
                 response = await client.get(url)
                 response.raise_for_status()
                 return response
-            except httpx.HTTPError as e:
-                logger.error(f"HTTP error on attempt {attempt + 1}: {e}")
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed for {url}: {e}")
                 if attempt == max_retries - 1:
+                    logger.error(f"Failed to fetch {url} after {max_retries} attempts")
                     return None
-                await asyncio.sleep(2 ** attempt)
-    return None
+                await asyncio.sleep(1 * (attempt + 1))  # Exponential backoff
 
-@lru_cache(maxsize=32)
 def parse_currency_xml(xml_content: str) -> Dict[str, Any]:
-    """Parse currency XML data from Central Bank"""
+    """Parse XML currency response"""
     try:
         root = ElementTree.fromstring(xml_content)
         currencies = {}
@@ -119,10 +110,9 @@ def parse_currency_xml(xml_content: str) -> Dict[str, Any]:
             code = valute.get('Code')
             if code:
                 currencies[code] = {
-                    'code': code,
-                    'nominal': valute.find('Nominal').text if valute.find('Nominal') is not None else '1',
-                    'name': valute.find('Name').text if valute.find('Name') is not None else '',
-                    'value': float(valute.find('Value').text) if valute.find('Value') is not None else 0.0
+                    'name': valute.findtext('Name', ''),
+                    'value': float(valute.findtext('Value', '0')),
+                    'nominal': int(valute.findtext('Nominal', '1'))
                 }
         
         return {
@@ -134,11 +124,11 @@ def parse_currency_xml(xml_content: str) -> Dict[str, Any]:
         return {'date': '', 'currencies': {}}
 
 class DataEnrichmentService:
-    """Service for fetching real-time data"""
+    """Service for enriching AI responses with real-time data"""
     
     @staticmethod
     async def fetch_locations(location_type: str = "all") -> List[Dict[str, Any]]:
-        """Fetch location data based on type"""
+        """Fetch location data from external APIs"""
         cache_key = f"locations_{location_type}"
         
         if cache_key in api_cache:
@@ -147,34 +137,27 @@ class DataEnrichmentService:
         locations = []
         
         if location_type == "all":
-            # Fetch all location types
-            tasks = []
-            for endpoint_type, url in API_ENDPOINTS.items():
-                tasks.append(fetch_with_retry(url))
-            
-            responses = await asyncio.gather(*tasks)
-            
-            for i, response in enumerate(responses):
+            types_to_fetch = API_ENDPOINTS.keys()
+        else:
+            types_to_fetch = [location_type] if location_type in API_ENDPOINTS else []
+        
+        for loc_type in types_to_fetch:
+            if loc_type in API_ENDPOINTS:
+                response = await fetch_with_retry(API_ENDPOINTS[loc_type])
                 if response and response.status_code == 200:
                     try:
                         data = response.json()
-                        for item in data:
-                            item['location_type'] = list(API_ENDPOINTS.keys())[i]
-                        locations.extend(data)
+                        if isinstance(data, list):
+                            locations.extend(data)
+                            # Add location type to each item
+                            for item in locations:
+                                item['location_type'] = loc_type
+                        elif isinstance(data, dict) and 'data' in data:
+                            locations.extend(data['data'])
+                            for item in locations:
+                                item['location_type'] = loc_type
                     except json.JSONDecodeError:
-                        logger.error(f"Failed to parse JSON for {list(API_ENDPOINTS.keys())[i]}")
-        else:
-            # Fetch specific location type
-            url = API_ENDPOINTS.get(location_type)
-            if url:
-                response = await fetch_with_retry(url)
-                if response and response.status_code == 200:
-                    try:
-                        locations = response.json()
-                        for item in locations:
-                            item['location_type'] = location_type
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to parse JSON for {location_type}")
+                        logger.error(f"Failed to parse JSON for {loc_type}")
         
         # Cache the results
         api_cache[cache_key] = locations
@@ -228,14 +211,6 @@ class RAGProcessor:
                     'requires_data': True
                 }
         
-        # Check for all locations
-        if any(word in message_lower for word in ['where', 'где', 'location', 'найти', 'рядом', 'nearby']):
-            return {
-                'type': 'location',
-                'subtype': 'all',
-                'requires_data': True
-            }
-        
         # Check for currency intent
         if any(keyword in message_lower for keyword in currency_keywords):
             return {
@@ -243,7 +218,7 @@ class RAGProcessor:
                 'requires_data': True
             }
         
-        # General conversation
+        # Default intent
         return {
             'type': 'general',
             'requires_data': False
@@ -251,23 +226,13 @@ class RAGProcessor:
     
     @staticmethod
     async def enrich_context(intent: Dict[str, Any]) -> Dict[str, Any]:
-        """Fetch relevant data based on intent"""
+        """Enrich context with real-time data based on intent"""
         context_data = {}
         
         if intent['type'] == 'location':
             locations = await DataEnrichmentService.fetch_locations(intent.get('subtype', 'all'))
             context_data['locations'] = locations
-            context_data['total_count'] = len(locations)
-            
-            # Group by city
-            cities = {}
-            for loc in locations:
-                city = loc.get('city_id', 'Unknown')
-                if city not in cities:
-                    cities[city] = []
-                cities[city].append(loc)
-            context_data['by_city'] = cities
-            
+        
         elif intent['type'] == 'currency':
             rates = await DataEnrichmentService.fetch_currency_rates()
             context_data['currency_rates'] = rates
@@ -275,19 +240,19 @@ class RAGProcessor:
         return context_data
 
 class ChatService:
-    """Main chat service with RAG capabilities"""
+    """Main service for processing chat messages"""
     
     @staticmethod
     def format_location_response(locations: List[Dict[str, Any]], location_type: str) -> str:
-        """Format location data for response"""
+        """Format location data for AI response"""
         if not locations:
-            return "No locations found for your query."
+            return f"No {location_type} locations found."
         
-        response = f"I found {len(locations)} {location_type} location(s):\n\n"
+        # Limit to first 5 for brevity
+        response = f"Found {len(locations)} {location_type} locations:\n\n"
         
-        # Limit to first 5 locations for brevity
-        for i, loc in enumerate(locations[:5]):
-            response += f"{i+1}. **{loc.get('name', 'Unknown')}**\n"
+        for i, loc in enumerate(locations[:5], 1):
+            response += f"{i}. **{loc.get('name', 'Unknown')}**\n"
             response += f"   📍 Address: {loc.get('address', 'N/A')}\n"
             
             if loc.get('work_hours_week'):
@@ -375,8 +340,11 @@ a specific currency conversion, calculate it for them using the rates above.
                 context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in context[-3:]])
                 augmented_prompt = f"Previous conversation:\n{context_str}\n\n{augmented_prompt}"
             
-            # Generate response with Gemini
-            response = model.generate_content(augmented_prompt)
+            # Generate response with new Gemini API
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=augmented_prompt
+            )
             
             return ChatResponse(
                 response=response.text,
