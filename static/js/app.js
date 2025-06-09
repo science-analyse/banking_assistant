@@ -287,8 +287,8 @@ Feel free to ask me anything about banking! I'm here to provide clear, helpful g
         const messageElement = this.createMessageElement(message);
         chatMessages.appendChild(messageElement);
         
-        // Scroll to bottom smoothly
-        this.scrollToBottom();
+        // Enhanced auto-scroll with proper timing
+        this.scrollToBottom(true);
     }
 
     createMessageElement(message) {
@@ -376,7 +376,8 @@ Feel free to ask me anything about banking! I'm here to provide clear, helpful g
         typingDiv.appendChild(content);
         chatMessages.appendChild(typingDiv);
         
-        this.scrollToBottom();
+        // Scroll to show typing indicator
+        this.scrollToBottom(true);
     }
 
     removeTypingIndicator() {
@@ -394,14 +395,39 @@ Feel free to ask me anything about banking! I'm here to provide clear, helpful g
         }
     }
 
-    scrollToBottom() {
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.scrollTo({
-                top: chatMessages.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
+    // Enhanced scroll function with better behavior
+    scrollToBottom(smooth = false) {
+        // Use a small delay to ensure DOM has updated
+        setTimeout(() => {
+            const chatContainer = document.querySelector('.chat-container');
+            const chatMessages = document.getElementById('chat-messages');
+            
+            if (chatMessages && chatContainer) {
+                // Get the height of the messages container
+                const scrollHeight = chatMessages.scrollHeight;
+                
+                // Scroll the window instead of just the chat container
+                const containerRect = chatContainer.getBoundingClientRect();
+                const targetScrollY = window.scrollY + containerRect.bottom - window.innerHeight + 100;
+                
+                if (smooth) {
+                    // Smooth scroll behavior
+                    window.scrollTo({
+                        top: Math.max(0, targetScrollY),
+                        behavior: 'smooth'
+                    });
+                } else {
+                    // Instant scroll
+                    window.scrollTo(0, Math.max(0, targetScrollY));
+                }
+                
+                // Also scroll the messages container if it has its own scroll
+                chatMessages.scrollTo({
+                    top: scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            }
+        }, 50);
     }
 
     async clearChat() {
@@ -425,6 +451,9 @@ Feel free to ask me anything about banking! I'm here to provide clear, helpful g
                 
                 // Show notification
                 this.showNotification('Chat cleared successfully');
+                
+                // Scroll to top after clearing
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch (error) {
             console.error('Error clearing chat:', error);
@@ -575,6 +604,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
             e.preventDefault();
             app.clearChat();
+        }
+    });
+    
+    // Enhanced scroll behavior for mobile
+    let isScrolling = false;
+    window.addEventListener('scroll', () => {
+        if (!isScrolling) {
+            window.requestAnimationFrame(() => {
+                // Add any scroll-based logic here if needed
+                isScrolling = false;
+            });
+            isScrolling = true;
         }
     });
 });
