@@ -32,13 +32,6 @@ A free AI-powered banking assistant built specifically for Azerbaijan, providing
 - Fast loading times
 - Native app-like experience
 
-## Supported Banks
-
-- **Kapital Bank** (Kapital Bank)
-- **International Bank of Azerbaijan** (Azərbaycan Beynəlxalq Bankı)
-- **PASHA Bank** (PAŞA Bank)
-- **AzerTurk Bank** (AzərTürk Bank)
-
 ## Technology Stack
 
 - **Backend**: Python Flask with Jinja2 templates
@@ -196,7 +189,7 @@ banking_assistant/
 1. **New Banking Data**: Update the `banking_data` dictionary in `main.py`
 2. **New API Endpoints**: Add routes to `main.py`
 3. **Frontend Changes**: Modify `app.js` and `styles.css`
-4. **AI Behavior**: Adjust the `system_prompt` in the `AzerbaijanieBankingAssistant` class
+4. **AI Behavior**: Adjust the `system_prompt` in the assistant class
 
 ### Code Style
 
