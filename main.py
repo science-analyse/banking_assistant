@@ -21,126 +21,112 @@ if not GEMINI_API_KEY:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-class AzerbaijanieBankingAssistant:
-    """Banking Assistant for Azerbaijan with Gemini AI"""
+class BankingAssistant:
+    """Generic Banking Assistant with Gemini AI"""
     
     def __init__(self):
         # Initialize Gemini model
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Banking data for Azerbaijan
+        # Generic banking data
         self.banking_data = {
-            "banks": {
-                "kapital_bank": {
-                    "name": "Kapital Bank",
-                    "name_az": "Kapital Bank",
-                    "services": ["individual_banking", "corporate_banking", "cards", "loans", "deposits"],
-                    "contact": "+994 12 496 00 00",
-                    "website": "https://kapitalbank.az",
-                    "branches": ["Baku", "Ganja", "Sumgayit", "Mingachevir", "Sheki"]
-                },
-                "international_bank": {
-                    "name": "International Bank of Azerbaijan",
-                    "name_az": "Azərbaycan Beynəlxalq Bankı",
-                    "services": ["individual_banking", "corporate_banking", "international_transfers", "cards"],
-                    "contact": "+994 12 493 01 22",
-                    "website": "https://ibar.az",
-                    "branches": ["Baku", "Ganja", "Sumgayit", "Lankaran", "Sheki"]
-                },
-                "pasha_bank": {
-                    "name": "PASHA Bank",
-                    "name_az": "PAŞA Bank",
-                    "services": ["individual_banking", "corporate_banking", "digital_banking", "loans"],
-                    "contact": "+994 12 565 00 00",
-                    "website": "https://pashabank.az",
-                    "branches": ["Baku", "Ganja", "Sumgayit"]
-                },
-                "azer_turk_bank": {
-                    "name": "AzerTurk Bank",
-                    "name_az": "AzərTürk Bank",
-                    "services": ["individual_banking", "corporate_banking", "cards", "loans"],
-                    "contact": "+994 12 564 20 00",
-                    "website": "https://azerturkbank.az",
-                    "branches": ["Baku", "Ganja"]
-                }
-            },
             "services": {
-                "individual_banking": {
-                    "name": "Individual Banking",
-                    "name_az": "Fərdi Bankçılıq",
+                "personal_banking": {
+                    "name": "Personal Banking",
                     "description": "Personal banking services including accounts, cards, and transfers"
                 },
-                "corporate_banking": {
-                    "name": "Corporate Banking", 
-                    "name_az": "Korporativ Bankçılıq",
+                "business_banking": {
+                    "name": "Business Banking", 
                     "description": "Business banking services for companies and organizations"
                 },
                 "loans": {
                     "name": "Loans",
-                    "name_az": "Kreditlər", 
                     "description": "Personal and business loans with competitive rates"
                 },
-                "deposits": {
-                    "name": "Deposits",
-                    "name_az": "Depozitlər",
+                "savings": {
+                    "name": "Savings & Deposits",
                     "description": "Savings accounts and term deposits"
                 },
                 "cards": {
                     "name": "Bank Cards",
-                    "name_az": "Bank Kartları",
                     "description": "Debit and credit cards with various benefits"
                 },
-                "international_transfers": {
-                    "name": "International Transfers",
-                    "name_az": "Beynəlxalq Köçürmələr", 
-                    "description": "Money transfers to and from other countries"
+                "digital_banking": {
+                    "name": "Digital Banking",
+                    "description": "Online and mobile banking services"
+                },
+                "investments": {
+                    "name": "Investments",
+                    "description": "Investment products and wealth management"
+                },
+                "insurance": {
+                    "name": "Insurance",
+                    "description": "Various insurance products for protection"
                 }
             },
-            "currencies": {
-                "AZN": {"name": "Azerbaijani Manat", "symbol": "₼"},
-                "USD": {"name": "US Dollar", "symbol": "$"}, 
-                "EUR": {"name": "Euro", "symbol": "€"},
-                "GBP": {"name": "British Pound", "symbol": "£"},
-                "RUB": {"name": "Russian Ruble", "symbol": "₽"},
-                "TRY": {"name": "Turkish Lira", "symbol": "₺"}
+            "account_types": {
+                "checking": {
+                    "name": "Checking Account",
+                    "description": "Everyday banking with easy access to your funds"
+                },
+                "savings": {
+                    "name": "Savings Account",
+                    "description": "Earn interest on your deposits"
+                },
+                "business": {
+                    "name": "Business Account",
+                    "description": "Banking solutions for businesses"
+                },
+                "student": {
+                    "name": "Student Account",
+                    "description": "Special accounts for students with benefits"
+                }
+            },
+            "features": {
+                "atm_network": "Wide ATM network coverage",
+                "mobile_banking": "Full-featured mobile banking app",
+                "online_banking": "24/7 online banking access",
+                "customer_support": "Professional customer support",
+                "security": "Advanced security features",
+                "international": "International banking services"
             }
         }
         
         # System prompt for the assistant
-        self.system_prompt = """You are a helpful banking assistant for Azerbaijan. Your name is "Bank Köməkçisi" (Banking Assistant).
+        self.system_prompt = """You are a helpful and knowledgeable banking assistant.
 
 You help users with:
-- Banking services information in Azerbaijan
-- Finding bank branches and ATMs
-- Explaining banking products (loans, deposits, cards)
-- Currency information and exchange rates
-- General banking advice and procedures
-- Account opening requirements
-- Online banking help
+- General banking services information
+- Account types and features
+- Banking products (loans, deposits, cards)
+- Digital banking guidance
+- General banking advice and best practices
+- Financial literacy and education
+- Security tips and fraud prevention
 
 You should:
-- Be friendly and professional
-- Provide accurate information about Azerbaijani banks
-- Respond in both Azerbaijani and English as needed
-- Always prioritize user security and privacy
-- Suggest contacting banks directly for specific account issues
-- Use the banking data provided when available
+- Be friendly, professional, and helpful
+- Provide accurate general banking information
+- Explain banking concepts clearly
+- Help users understand their banking options
+- Prioritize user security and privacy
+- Provide educational content about banking
+- Give general guidance on financial matters
 
-Available banks in Azerbaijan:
-- Kapital Bank (Kapital Bank)
-- International Bank of Azerbaijan (Azərbaycan Beynəlxalq Bankı) 
-- PASHA Bank (PAŞA Bank)
-- AzerTurk Bank (AzərTürk Bank)
+Important guidelines:
+- Never ask for or handle actual account numbers or sensitive personal information
+- Always recommend contacting the user's bank directly for account-specific issues
+- Provide general information rather than specific financial advice
+- Emphasize security best practices
+- Be educational and informative
 
-When users ask about specific services, provide helpful information and suggest they contact the relevant bank for detailed assistance.
-
-Always be helpful and ensure users understand that for account-specific issues, they should contact their bank directly."""
+Remember: You're here to educate and guide users about banking in general, not to handle actual banking transactions or provide specific financial advice."""
 
     def get_chat_response(self, user_message: str, conversation_history: List[Dict] = None) -> str:
         """Get response from Gemini AI"""
         try:
             # Prepare conversation context
-            context = f"{self.system_prompt}\n\nBanking Data: {json.dumps(self.banking_data, indent=2)}\n\n"
+            context = f"{self.system_prompt}\n\nAvailable Services: {json.dumps(self.banking_data, indent=2)}\n\n"
             
             # Add conversation history if available
             if conversation_history:
@@ -166,25 +152,24 @@ Always be helpful and ensure users understand that for account-specific issues, 
     def get_banking_info(self, query: str) -> Dict:
         """Get specific banking information"""
         query_lower = query.lower()
-        results = {"banks": [], "services": []}
-        
-        # Search banks
-        for bank_id, bank_info in self.banking_data["banks"].items():
-            if (query_lower in bank_info["name"].lower() or 
-                query_lower in bank_info["name_az"].lower()):
-                results["banks"].append(bank_info)
+        results = {"services": [], "accounts": [], "features": []}
         
         # Search services  
         for service_id, service_info in self.banking_data["services"].items():
             if (query_lower in service_info["name"].lower() or
-                query_lower in service_info["name_az"].lower() or
                 query_lower in service_info["description"].lower()):
                 results["services"].append(service_info)
+        
+        # Search account types
+        for account_id, account_info in self.banking_data["account_types"].items():
+            if (query_lower in account_info["name"].lower() or
+                query_lower in account_info["description"].lower()):
+                results["accounts"].append(account_info)
                 
         return results
 
 # Initialize the assistant
-banking_assistant = AzerbaijanieBankingAssistant()
+banking_assistant = BankingAssistant()
 
 @app.route('/')
 def index():
@@ -255,15 +240,6 @@ def banking_info():
         logger.error(f"Error in banking-info endpoint: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/banks', methods=['GET'])
-def get_banks():
-    """Get list of banks"""
-    try:
-        return jsonify(banking_assistant.banking_data["banks"])
-    except Exception as e:
-        logger.error(f"Error in banks endpoint: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
 @app.route('/api/services', methods=['GET'])
 def get_services():
     """Get list of banking services"""
@@ -289,7 +265,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'service': 'Azerbaijan Banking Assistant'
+        'service': 'Banking Assistant'
     })
 
 @app.errorhandler(404)

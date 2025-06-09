@@ -1,14 +1,22 @@
 {
-  "name": "Banking AI Assistant for Azerbaijan",
-  "short_name": "Banking Assistant",
-  "description": "Free AI-powered banking assistant with real-time location finder, currency rates, and banking services for Azerbaijan",
-  "start_url": "/",
+  "name": "AI Banking Assistant - Your Smart Financial Guide",
+  "short_name": "Banking AI",
+  "description": "Free AI-powered banking assistant providing instant help with banking services, financial guidance, and expert advice",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#1f4e79",
+  "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "lang": "en",
   "scope": "/",
+  "id": "banking-assistant-pwa",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "productivity",
+    "education",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/static/favicon_io/android-chrome-192x192.png",
@@ -38,58 +46,52 @@
       "type": "image/png"
     }
   ],
-  "categories": [
-    "finance",
-    "banking",
-    "productivity",
-    "utilities"
-  ],
   "screenshots": [
     {
-      "src": "/static/images/screenshot-wide.png",
-      "sizes": "1280x720",
+      "src": "/static/images/screenshot-desktop.png",
+      "sizes": "1920x1080",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Banking services and currency rates interface"
+      "label": "AI Banking Assistant on desktop"
     },
     {
-      "src": "/static/images/screenshot-narrow.png", 
-      "sizes": "640x1136",
+      "src": "/static/images/screenshot-mobile.png", 
+      "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mobile AI chat interface"
+      "label": "AI Banking Assistant on mobile"
     }
   ],
   "shortcuts": [
     {
-      "name": "Find Locations",
-      "short_name": "Locations",
-      "description": "Find nearby bank branches and ATMs",
-      "url": "/locations",
-      "icons": [
-        {
-          "src": "/static/favicon_io/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Currency Rates",
-      "short_name": "Currency", 
-      "description": "Check currency exchange rates",
-      "url": "/currency",
-      "icons": [
-        {
-          "src": "/static/favicon_io/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "AI Chat",
+      "name": "New Chat",
       "short_name": "Chat",
-      "description": "Chat with AI banking assistant",
-      "url": "/chat",
+      "description": "Start a new conversation with AI assistant",
+      "url": "/?action=new-chat",
+      "icons": [
+        {
+          "src": "/static/favicon_io/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Account Types",
+      "short_name": "Accounts",
+      "description": "Learn about different account types",
+      "url": "/?action=accounts",
+      "icons": [
+        {
+          "src": "/static/favicon_io/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Financial Help",
+      "short_name": "Help",
+      "description": "Get help with banking and finance",
+      "url": "/?action=help",
       "icons": [
         {
           "src": "/static/favicon_io/android-chrome-192x192.png",
@@ -99,10 +101,41 @@
     }
   ],
   "prefer_related_applications": false,
+  "related_applications": [],
   "edge_side_panel": {
     "preferred_width": 400
   },
   "launch_handler": {
     "client_mode": "focus-existing"
-  }
+  },
+  "handle_links": "preferred",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+banking",
+      "url": "/?query=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "features": [
+    "ai-assistant",
+    "banking-guidance",
+    "financial-education",
+    "secure-chat",
+    "offline-support"
+  ]
 }

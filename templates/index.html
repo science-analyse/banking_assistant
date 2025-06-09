@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Free AI-powered banking assistant for Azerbaijan. Get help with banking services, find ATMs, check currency rates, and get expert banking advice.">
-    <meta name="keywords" content="Azerbaijan banking, AI assistant, bank services, ATM finder, currency rates, Kapital Bank, PASHA Bank">
-    <meta name="author" content="Azerbaijan Banking Assistant">
+    <meta name="description" content="AI-powered banking assistant. Get instant help with banking services, financial guidance, and expert banking advice.">
+    <meta name="keywords" content="banking assistant, AI banking, financial help, banking services, digital banking">
+    <meta name="author" content="Banking Assistant">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="Banking AI Assistant for Azerbaijan">
-    <meta property="og:description" content="Free AI-powered banking assistant with real-time location finder, currency rates, and banking services for Azerbaijan">
+    <meta property="og:title" content="AI Banking Assistant - Your Financial Guide">
+    <meta property="og:description" content="Free AI-powered banking assistant providing instant help with banking services and financial guidance">
     <meta property="og:image" content="{{ url_for('static', filename='favicon_io/android-chrome-512x512.png') }}">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.url }}">
-    <meta property="twitter:title" content="Banking AI Assistant for Azerbaijan">
-    <meta property="twitter:description" content="Free AI-powered banking assistant with real-time location finder, currency rates, and banking services for Azerbaijan">
+    <meta property="twitter:title" content="AI Banking Assistant">
+    <meta property="twitter:description" content="Free AI-powered banking assistant for all your banking needs">
     <meta property="twitter:image" content="{{ url_for('static', filename='favicon_io/android-chrome-512x512.png') }}">
 
     <!-- Favicon -->
@@ -30,18 +30,691 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- PWA -->
-    <meta name="theme-color" content="#1f4e79">
+    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Banking Assistant">
 
-    <title>Banking AI Assistant for Azerbaijan - Free Banking Help & Services</title>
+    <title>AI Banking Assistant - Your Smart Financial Guide</title>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #60a5fa;
+            --primary-dark: #1e40af;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #ffffff;
+            --surface: #f8fafc;
+            --surface-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-full: 9999px;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-accent: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-success: linear-gradient(135deg, #13B497 0%, #10b981 100%);
+            --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            background: radial-gradient(ellipse at top left, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+                        radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header Styles */
+        .app-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-container {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-container::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .logo {
+            width: 28px;
+            height: 28px;
+            color: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--surface);
+            color: var(--text-secondary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .icon-btn:hover {
+            background: var(--surface-hover);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions-bar {
+            background: var(--surface);
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-light);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .quick-actions-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            min-width: max-content;
+        }
+
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+
+        .quick-action-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .quick-action-btn:hover::before {
+            opacity: 0.1;
+        }
+
+        .quick-action-btn svg {
+            width: 18px;
+            height: 18px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .quick-action-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            padding-bottom: 180px;
+        }
+
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .message.assistant .message-avatar {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .message.user .message-avatar {
+            background: var(--gradient-accent);
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            max-width: 75%;
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            border: 1px solid var(--border);
+            border-top-left-radius: var(--radius-sm);
+        }
+
+        .message.user .message-content {
+            background: var(--gradient-primary);
+            color: white;
+            border-top-right-radius: var(--radius-sm);
+        }
+
+        .message-content ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .message-content li {
+            margin: 0.25rem 0;
+        }
+
+        .message-content code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 0.125rem 0.375rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875em;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .message.user .message-content code {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem 0;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-tertiary);
+            border-radius: var(--radius-full);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem;
+            box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.05);
+            z-index: 40;
+        }
+
+        .chat-form {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 0.5rem;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), var(--shadow-md);
+        }
+
+        .message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .message-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .send-button {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: var(--radius-full);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .send-button:active::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-button svg {
+            width: 20px;
+            height: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            padding: 0 0.5rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--error);
+            border-radius: var(--radius-full);
+            transition: background 0.3s ease;
+            position: relative;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        .status-dot.connected::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            background: var(--success);
+            border-radius: var(--radius-full);
+            opacity: 0.3;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+        }
+
+        .input-hint {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        /* Welcome Message Styles */
+        .welcome-message .message-content {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .welcome-message .message-content strong {
+            font-weight: 600;
+        }
+
+        /* Error Message Styles */
+        .message.error .message-content {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: var(--error);
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: var(--radius-full);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 1rem;
+            }
+
+            .brand-text h1 {
+                font-size: 1.25rem;
+            }
+
+            .tagline {
+                display: none;
+            }
+
+            .quick-actions-bar {
+                padding: 0.75rem 0;
+            }
+
+            .quick-actions-content {
+                padding: 0 1rem;
+                gap: 0.5rem;
+            }
+
+            .quick-action-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8125rem;
+            }
+
+            .chat-container {
+                padding: 1rem;
+                padding-bottom: 160px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .chat-input-container {
+                padding: 1rem;
+            }
+
+            .input-info {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .app-header,
+            .quick-actions-bar,
+            .chat-input-container,
+            .header-actions {
+                display: none;
+            }
+
+            .chat-container {
+                padding-bottom: 0;
+            }
+
+            .message-content {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -56,21 +729,23 @@
                     </div>
                     <div class="brand-text">
                         <h1>Banking Assistant</h1>
-                        <p class="tagline">AI-Powered Banking Help for Azerbaijan</p>
+                        <p class="tagline">AI-Powered Financial Guide</p>
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button id="install-app" class="icon-btn" title="Install App" aria-label="Install as app" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                    <button id="share-app" class="icon-btn" title="Share" aria-label="Share app">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.632 8.048c.5.5.5 1.309 0 1.809a1.279 1.279 0 01-1.809 0L15.5 18.5m3.006 3.006L15.5 18.5m0 0l-3.006 3.006m3.006-3.006l3.006-3.006M12 15l3.506 3.506M6.75 9.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z" />
+                        </svg>
+                    </button>
                     <button id="clear-chat" class="icon-btn" title="Clear Chat" aria-label="Clear chat history">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                    <button id="theme-toggle" class="icon-btn" title="Toggle Theme" aria-label="Toggle dark/light theme">
-                        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
                     </button>
                 </div>
@@ -80,42 +755,41 @@
         <!-- Quick Actions Bar -->
         <div class="quick-actions-bar">
             <div class="quick-actions-content">
-                <button class="quick-action-btn" data-action="find-atm">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Find ATM
-                </button>
-                <button class="quick-action-btn" data-action="currency-rates">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                    </svg>
-                    Currency Rates
-                </button>
-                <button class="quick-action-btn" data-action="open-account">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Open Account
-                </button>
-                <button class="quick-action-btn" data-action="loans">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    Loans
-                </button>
-                <button class="quick-action-btn" data-action="cards">
+                <button class="quick-action-btn" data-action="account-types">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    Bank Cards
+                    <span>Account Types</span>
                 </button>
-                <button class="quick-action-btn" data-action="branches">
+                <button class="quick-action-btn" data-action="loans">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
-                    Branches
+                    <span>Loans</span>
+                </button>
+                <button class="quick-action-btn" data-action="savings">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Savings</span>
+                </button>
+                <button class="quick-action-btn" data-action="digital-banking">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span>Digital Banking</span>
+                </button>
+                <button class="quick-action-btn" data-action="security">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span>Security</span>
+                </button>
+                <button class="quick-action-btn" data-action="help">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Help & FAQ</span>
                 </button>
             </div>
         </div>
@@ -134,7 +808,7 @@
                     <textarea 
                         id="message-input" 
                         class="message-input" 
-                        placeholder="Ask me about banking in Azerbaijan... (Azərbaycan bankçılığı haqqında soruşun...)"
+                        placeholder="Ask me anything about banking..."
                         rows="1"
                         aria-label="Type your banking question here"
                         required
@@ -176,8 +850,8 @@
     {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "Banking AI Assistant for Azerbaijan",
-        "description": "Free AI-powered banking assistant providing help with banking services, ATM locations, currency rates, and expert banking advice for Azerbaijan.",
+        "name": "AI Banking Assistant",
+        "description": "Free AI-powered banking assistant providing instant help with banking services and financial guidance.",
         "url": "{{ request.url_root }}",
         "applicationCategory": "FinanceApplication",
         "operatingSystem": "Any",
@@ -188,17 +862,13 @@
         },
         "featureList": [
             "AI-powered banking assistance",
-            "ATM and branch finder",
-            "Currency exchange rates",
-            "Banking service information",
-            "Account opening guidance",
-            "Loan and deposit advice"
+            "Account information and guidance",
+            "Loan and savings advice",
+            "Digital banking support",
+            "Security tips and best practices",
+            "Financial education"
         ],
-        "inLanguage": ["en", "az"],
-        "areaServed": {
-            "@type": "Country",
-            "name": "Azerbaijan"
-        }
+        "inLanguage": "en"
     }
     </script>
 </body>
