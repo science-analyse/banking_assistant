@@ -52,7 +52,7 @@ A free AI-powered banking assistant built specifically for Azerbaijan, providing
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repository-url>
+   git clone https://github.com/Ismat-Samadov/banking_assistant
    cd banking_assistant
    ```
 
