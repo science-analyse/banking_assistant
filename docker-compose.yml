@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank_of_baku_scraper
+    volumes:
+      # Mount the scraped_data directory to persist data on host
+      - ./scraped_data:/app/scraped_data
+      # Optional: Mount the script to allow live changes during development
+      # - ./scrape_bank_of_baku.py:/app/scrape_bank_of_baku.py
+    environment:
+      # Add any environment variables here if needed
+      - TZ=Asia/Baku
+    restart: "no"
+    networks:
+      - scraper_network
+
+networks:
+  scraper_network:
+    driver: bridge

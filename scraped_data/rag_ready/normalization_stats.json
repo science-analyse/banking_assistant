@@ -1,0 +1,20 @@
+{
+  "total_chunks": 20,
+  "by_category": {
+    "home": 1,
+    "xeberler": 6,
+    "pul-kocurmeleri": 3,
+    "emanetler": 3,
+    "kartlar": 3,
+    "kreditler": 3,
+    "onlayn-xidmetler": 1
+  },
+  "by_quality": {
+    "high": 6,
+    "medium": 14,
+    "low": 0
+  },
+  "total_tokens": 2203,
+  "avg_tokens_per_chunk": 110.15,
+  "generated_at": "2025-10-16T19:34:05.203072"
+}

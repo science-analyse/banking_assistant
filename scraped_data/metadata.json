@@ -1,0 +1,90 @@
+{
+  "scrape_info": {
+    "base_url": "http://bankofbaku.com/az",
+    "scraped_at": "2025-10-16T19:14:36.418018",
+    "scraper_version": "2.0_enhanced"
+  },
+  "statistics": {
+    "total_pages": 20,
+    "total_chunks": 6,
+    "total_words": 1409,
+    "total_tokens": 1393,
+    "avg_tokens_per_chunk": 232.17,
+    "pages_discovered": 61,
+    "pages_visited": 62,
+    "pages_failed": 0,
+    "coverage_percentage": 101.64
+  },
+  "by_category": {
+    "home": {
+      "pages": 1,
+      "chunks": 0,
+      "words": 18
+    },
+    "xeberler": {
+      "pages": 6,
+      "chunks": 6,
+      "words": 1223
+    },
+    "pul-kocurmeleri": {
+      "pages": 3,
+      "chunks": 0,
+      "words": 25
+    },
+    "emanetler": {
+      "pages": 3,
+      "chunks": 0,
+      "words": 35
+    },
+    "kartlar": {
+      "pages": 3,
+      "chunks": 0,
+      "words": 44
+    },
+    "kreditler": {
+      "pages": 3,
+      "chunks": 0,
+      "words": 48
+    },
+    "onlayn-xidmetler": {
+      "pages": 1,
+      "chunks": 0,
+      "words": 16
+    }
+  },
+  "by_language": {
+    "az": {
+      "pages": 19,
+      "chunks": 6,
+      "words": 1409
+    },
+    "unknown": {
+      "pages": 1,
+      "chunks": 0,
+      "words": 0
+    }
+  },
+  "urls_scraped": [
+    "http://bankofbaku.com/az",
+    "http://bankofbaku.com/az/xeberler/bank-of-baku-istiqrazlari-yuksek-telebatla-satildi-601-investor",
+    "https://bankofbaku.com/az/pul-kocurmeleri",
+    "http://bankofbaku.com/az/emanetler",
+    "http://bankofbaku.com/az/kartlar/debet",
+    "http://bankofbaku.com/az/kartlar/debet/maas-karti",
+    "http://bankofbaku.com/az/kartlar/debet/103",
+    "https://bankofbaku.com/az/pul-kocurmeleri/western-union",
+    "http://bankofbaku.com/az/xeberler/bank-of-baku-dan-sehiyye-tibb-iscileri-ucun-50000-azndek-komissiyasiz-kredit",
+    "http://bankofbaku.com/az/xeberler/maliyye-savadliligi-her-yasda-onemlidir-bank-of-baku-dan-telim",
+    "http://bankofbaku.com/az/xeberler/bank-baku-dan-kapital-bazarinda-yeni-addim-40-milyonluq-istiqraz",
+    "http://bankofbaku.com/az/kreditler/kredit-kartlari",
+    "http://bankofbaku.com/az/emanetler/bank-seyfleri",
+    "http://bankofbaku.com/az/onlayn-xidmetler",
+    "https://bankofbaku.com/az/pul-kocurmeleri/upt-tos",
+    "http://bankofbaku.com/az/xeberler/bank-of-baku-dostbank-tetbiqi-ile-yasat-fonduna-ianeye-5faiz-kesbek",
+    "http://bankofbaku.com/az/xeberler/bank-of-baku-istiqrazlarini-alin-illik-13-faiz-gelir-qazanin-istediyiniz-vaxt-satin",
+    "http://bankofbaku.com/az/emanetler/dinamik-emanet",
+    "http://bankofbaku.com/az/kreditler/kredit-kartlari/158",
+    "http://bankofbaku.com/az/kreditler/kredit-kartlari/pensiyacilara-ozel-kredit"
+  ],
+  "failed_urls": {}
+}
