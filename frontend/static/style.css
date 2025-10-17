@@ -392,16 +392,18 @@ body {
     background: var(--text-secondary);
 }
 
-/* Responsive */
+/* Responsive Design */
+
+/* Tablet and below (768px) */
 @media (max-width: 768px) {
+    body {
+        padding: 0;
+    }
+
     .container {
         height: 100vh;
         max-height: none;
         border-radius: 0;
-    }
-
-    .message-content {
-        max-width: 85%;
     }
 
     .header {
@@ -410,5 +412,309 @@ body {
 
     .logo h1 {
         font-size: 20px;
+    }
+
+    .logo p {
+        font-size: 12px;
+    }
+
+    .status {
+        padding: 6px 12px;
+    }
+
+    .status-text {
+        font-size: 12px;
+    }
+
+    .message-content {
+        max-width: 75%;
+        padding: 14px;
+    }
+
+    .chat-container {
+        padding: 16px;
+    }
+
+    /* Make tables horizontally scrollable on mobile */
+    .message-content table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 12px;
+    }
+
+    .message-content th,
+    .message-content td {
+        padding: 8px 10px;
+    }
+
+    .input-area {
+        padding: 16px;
+    }
+
+    .quick-questions {
+        gap: 6px;
+    }
+
+    .quick-btn {
+        font-size: 12px;
+        padding: 7px 14px;
+    }
+}
+
+/* Mobile devices (480px and below) */
+@media (max-width: 480px) {
+    .header {
+        padding: 14px 16px;
+    }
+
+    .logo h1 {
+        font-size: 18px;
+    }
+
+    .logo p {
+        font-size: 11px;
+    }
+
+    /* Hide status indicator on very small screens to save space */
+    .status {
+        padding: 5px 10px;
+    }
+
+    .status-indicator {
+        width: 6px;
+        height: 6px;
+    }
+
+    .status-text {
+        font-size: 11px;
+    }
+
+    .message-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+
+    .message-content {
+        max-width: 80%;
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .message-content p {
+        margin-bottom: 8px;
+    }
+
+    .message-content ul {
+        margin-left: 16px;
+    }
+
+    .chat-container {
+        padding: 12px;
+    }
+
+    .message {
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    /* Optimize input area for small screens */
+    .input-area {
+        padding: 12px;
+    }
+
+    .input-container {
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    #questionInput {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    .send-button {
+        width: 46px;
+        height: 46px;
+        flex-shrink: 0;
+    }
+
+    .send-button svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Stack quick question buttons better */
+    .quick-questions {
+        gap: 6px;
+    }
+
+    .quick-btn {
+        font-size: 11px;
+        padding: 6px 12px;
+        flex: 1 1 auto;
+        min-width: fit-content;
+    }
+
+    /* Better table responsiveness */
+    .message-content table {
+        font-size: 11px;
+    }
+
+    .message-content th,
+    .message-content td {
+        padding: 6px 8px;
+    }
+
+    /* Optimize source items */
+    .source-item {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .source-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+
+    .source-link {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+
+    .source-link svg {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+/* Very small devices (375px and below) */
+@media (max-width: 375px) {
+    .header {
+        padding: 12px 14px;
+    }
+
+    .logo h1 {
+        font-size: 16px;
+    }
+
+    .logo p {
+        font-size: 10px;
+    }
+
+    .status-text {
+        display: none; /* Hide text, keep indicator only */
+    }
+
+    .status {
+        padding: 6px;
+    }
+
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .message-content {
+        max-width: 82%;
+        padding: 10px;
+        font-size: 13px;
+    }
+
+    .chat-container {
+        padding: 10px;
+    }
+
+    .message {
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    #questionInput {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .send-button {
+        width: 44px;
+        height: 44px;
+    }
+
+    .quick-btn {
+        font-size: 10px;
+        padding: 5px 10px;
+    }
+}
+
+/* Landscape mobile optimization */
+@media (max-height: 500px) and (orientation: landscape) {
+    .container {
+        height: 100vh;
+    }
+
+    .header {
+        padding: 10px 16px;
+    }
+
+    .logo h1 {
+        font-size: 16px;
+    }
+
+    .logo p {
+        display: none; /* Hide subtitle in landscape */
+    }
+
+    .chat-container {
+        padding: 10px;
+    }
+
+    .input-area {
+        padding: 10px;
+    }
+
+    .quick-questions {
+        display: none; /* Hide quick questions in landscape to save space */
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    /* Ensure all interactive elements are touch-friendly */
+    .quick-btn,
+    .send-button,
+    .source-link {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .quick-btn {
+        padding: 10px 16px;
+    }
+
+    /* Remove hover effects on touch devices */
+    .send-button:hover {
+        transform: none;
+    }
+
+    .quick-btn:hover {
+        background: var(--surface);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+
+    .source-item:hover {
+        transform: none;
+    }
+
+    /* Add active states for touch feedback */
+    .send-button:active {
+        transform: scale(0.95);
+    }
+
+    .quick-btn:active {
+        background: var(--primary-color);
+        color: white;
     }
 }
