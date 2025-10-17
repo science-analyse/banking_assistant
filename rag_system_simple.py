@@ -39,7 +39,7 @@ class BankCardRAG:
         )
 
         # Initialize Gemini LLM
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
         self.data_file = data_file
         print("✅ RAG system initialized (using free local embeddings)")

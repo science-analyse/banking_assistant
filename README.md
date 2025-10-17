@@ -1,4 +1,4 @@
-# Bank of Baku RAG Application
+# Bank of Baku RAG Application 🏦
 
 Complete RAG (Retrieval-Augmented Generation) system for Bank of Baku card information in Azerbaijani.
 
@@ -6,31 +6,48 @@ Complete RAG (Retrieval-Augmented Generation) system for Bank of Baku card infor
 
 ✅ **Web Scraping** - Clean data extraction from Bank of Baku website
 ✅ **Vector Database** - ChromaDB for semantic search
-✅ **Embeddings** - Google Gemini embedding-001
-✅ **LLM Integration** - Gemini Pro for answer generation
+✅ **Embeddings** - Local embeddings (no API quota limits)
+✅ **LLM Integration** - Gemini for answer generation
 ✅ **Azerbaijani Support** - Full support for Azerbaijani language
 ✅ **Interactive Chatbot** - Easy-to-use command-line interface
+✅ **Docker Support** - Isolated environment, zero dependency issues
 
-## Project Structure
+## Quick Start with Docker 🐳 (Recommended)
 
+### Prerequisites
+- Docker and Docker Compose installed
+- Gemini API key in `.env` file
+
+### 1. Build and Run
+
+```bash
+# Build the Docker image
+docker-compose build
+
+# Run the chatbot
+docker-compose up
+
+# Or run in interactive mode
+docker-compose run --rm rag-app
 ```
-.
-├── scraper.py              # Web scraper for data extraction
-├── rag_system.py           # Core RAG implementation
-├── chatbot.py              # Interactive chatbot interface
-├── requirements.txt        # Python dependencies
-├── .env                    # API keys (LLM_PROVIDER, LLM_API_KEY)
-└── data/
-    ├── credit cards urls.txt    # Credit card URLs
-    ├── debet cards urls.txt     # Debet card URLs
-    ├── rag_chunks.jsonl         # Processed data for RAG
-    ├── raw_data.json            # Complete extracted data
-    └── stats.json               # Extraction statistics
+
+### 2. Test the System
+
+```bash
+# Run test queries
+docker-compose --profile test up rag-test
 ```
 
-## Quick Start
+### 3. Scrape New Data
 
-### 1. Installation
+```bash
+# Run the scraper
+docker-compose --profile scrape up scraper
+```
+
+## Local Installation (Alternative)
+
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -44,68 +61,64 @@ LLM_PROVIDER=gemini
 LLM_API_KEY=your_gemini_api_key_here
 ```
 
-### 3. Extract Data (if needed)
-
-```bash
-python scraper.py
-```
-
-This scrapes Bank of Baku website and creates `data/rag_chunks.jsonl`.
-
-### 4. Run the Chatbot
+### 3. Run Chatbot
 
 ```bash
 python chatbot.py
 ```
 
-### 5. Ask Questions!
+## Project Structure
 
 ```
-👤 Siz: Bolkart kredit kartının şərtləri nələrdir?
-
-🤖 Asistent: [Detailed answer in Azerbaijani]
-
-📎 Mənbələr:
-  • Bolkart kredit (credit)
+.
+├── Dockerfile                  # Docker configuration
+├── docker-compose.yml          # Docker Compose setup
+├── scraper.py                  # Web scraper
+├── rag_system_simple.py        # Core RAG implementation
+├── chatbot.py                  # Interactive chatbot
+├── requirements.txt            # Python dependencies
+├── .env                        # API keys
+└── data/
+    ├── credit cards urls.txt   # Credit card URLs
+    ├── debet cards urls.txt    # Debet card URLs
+    ├── rag_chunks.jsonl        # Processed RAG data
+    ├── raw_data.json           # Complete extracted data
+    └── stats.json              # Extraction statistics
 ```
 
-## Usage Examples
+## Usage
 
-### Option 1: Interactive Chatbot
+### Interactive Chatbot
 
 ```bash
+# With Docker
+docker-compose run --rm rag-app
+
+# Without Docker
 python chatbot.py
 ```
 
-Commands:
+**Commands:**
 - Type your question in Azerbaijani
 - `yardım` or `help` - Show example questions
 - `çıxış` or `exit` - Exit the chatbot
 
-### Option 2: Programmatic Use
+### Programmatic Use
 
 ```python
-from rag_system import BankCardRAG
+from rag_system_simple import BankCardRAG
 
-# Initialize RAG system
+# Initialize
 rag = BankCardRAG(data_file="data/rag_chunks.jsonl")
 
 # Index data (first time only)
 rag.load_and_index_data()
 
-# Query the system
+# Query
 result = rag.query("Maaş kartı ilə nə qədər kredit götürə bilərəm?")
 print(result['answer'])
 print(result['sources'])
 ```
-
-### Option 3: Direct Testing
-
-```bash
-python rag_system.py
-```
-
-Runs example queries and shows results.
 
 ## Example Questions
 
@@ -120,43 +133,56 @@ Runs example queries and shows results.
 
 ## How It Works
 
-### 1. Data Extraction (`scraper.py`)
-- Scrapes 13 Bank of Baku card pages
-- Removes navigation and duplicates
-- Extracts clean Azerbaijani text
-- Outputs JSONL format for RAG
+### Architecture
 
-### 2. Embedding & Indexing (`rag_system.py`)
-- Loads data from `rag_chunks.jsonl`
-- Generates embeddings using Gemini embedding-001
-- Stores in ChromaDB vector database
-- Creates semantic search index
+```
+User Question (Azerbaijani)
+       ↓
+Local Embedding (ChromaDB default)
+       ↓
+Vector Search → Top K Relevant Chunks
+       ↓
+Gemini LLM (with context)
+       ↓
+Answer in Azerbaijani + Sources
+```
 
-### 3. Retrieval
-- Converts user query to embedding
-- Searches ChromaDB for similar chunks
-- Returns top-k most relevant passages
+### Components
 
-### 4. Generation
-- Sends query + retrieved context to Gemini Pro
-- LLM generates answer in Azerbaijani
-- Returns answer with source attribution
+1. **Data Extraction** (`scraper.py`)
+   - Scrapes 13 Bank of Baku card pages
+   - Removes navigation and duplicates
+   - Outputs clean JSONL format
 
-### 5. Chatbot Interface (`chatbot.py`)
-- Interactive command-line interface
-- Continuous conversation loop
-- Source attribution
-- Error handling
+2. **Embedding & Indexing** (`rag_system_simple.py`)
+   - Loads data from `rag_chunks.jsonl`
+   - Generates embeddings locally (no API calls)
+   - Stores in ChromaDB
+
+3. **Retrieval**
+   - Semantic search for relevant passages
+   - Returns top-k most similar chunks
+
+4. **Generation**
+   - Sends query + context to Gemini
+   - Generates answer in Azerbaijani
+   - Returns with source attribution
+
+5. **Interface** (`chatbot.py`)
+   - Interactive CLI
+   - Continuous conversation
+   - Help system
 
 ## Technical Stack
 
 | Component | Technology |
 |-----------|-----------|
+| **Containerization** | Docker + Docker Compose |
 | **Scraper** | BeautifulSoup, Requests |
-| **Embeddings** | Google Gemini embedding-001 |
-| **Vector DB** | ChromaDB (local) |
-| **LLM** | Google Gemini Pro |
-| **Language** | Python 3.8+ |
+| **Embeddings** | ChromaDB Default (local, free) |
+| **Vector DB** | ChromaDB |
+| **LLM** | Google Gemini 1.5 Flash |
+| **Language** | Python 3.11 |
 
 ## Data Quality
 
@@ -166,62 +192,116 @@ Runs example queries and shows results.
 - **Avg Words/Chunk**: 200.54
 - **Language**: Azerbaijani (az)
 
-## Customization
+## Docker Commands
 
-### Change Number of Retrieved Chunks
+```bash
+# Build
+docker-compose build
 
-In `rag_system.py`:
-```python
-result = rag.query(question, n_results=5)  # Default is 3
-```
+# Run chatbot
+docker-compose up
 
-### Use Different Embedding Model
+# Run chatbot interactively
+docker-compose run --rm rag-app
 
-In `rag_system.py`, modify:
-```python
-self.gemini_ef = embedding_functions.GoogleGenerativeAiEmbeddingFunction(
-    api_key=self.api_key,
-    model_name="models/embedding-001"  # Change model here
-)
-```
+# Test the system
+docker-compose --profile test up rag-test
 
-### Change LLM Model
+# Scrape new data
+docker-compose --profile scrape up scraper
 
-In `rag_system.py`:
-```python
-self.model = genai.GenerativeModel('gemini-pro')  # Change to gemini-1.5-pro, etc.
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Remove all containers and volumes
+docker-compose down -v
 ```
 
 ## Troubleshooting
 
-### "LLM_API_KEY not found"
-- Ensure `.env` file exists
-- Check that `LLM_API_KEY` is set
+### Docker Issues
 
-### "No module named chromadb"
+**Port already in use:**
 ```bash
-pip install chromadb
+docker-compose down
 ```
 
-### Slow first run
-- First time indexing generates embeddings (takes 30-60 seconds)
-- Subsequent runs are instant (data is cached)
+**Permission denied:**
+```bash
+sudo docker-compose up
+```
 
-### ChromaDB persistence
-- Data is stored in memory by default
-- To persist, modify `rag_system.py`:
+**Rebuild after code changes:**
+```bash
+docker-compose build --no-cache
+docker-compose up
+```
+
+### API Issues
+
+**"LLM_API_KEY not found":**
+- Ensure `.env` file exists in project root
+- Check that `LLM_API_KEY=your_key` is set
+
+**Model not found:**
+- The system uses `gemini-1.5-flash`
+- Check your API key has access to Gemini models
+
+### Data Issues
+
+**No data found:**
+```bash
+# Run scraper first
+docker-compose --profile scrape up scraper
+
+# Or locally
+python scraper.py
+```
+
+## Customization
+
+### Change Number of Retrieved Chunks
+
+In `rag_system_simple.py`:
 ```python
-self.chroma_client = chromadb.PersistentClient(path="./chroma_db")
+result = rag.query(question, n_results=5)  # Default is 3
 ```
+
+### Use Different LLM Model
+
+In `rag_system_simple.py`:
+```python
+self.model = genai.GenerativeModel('gemini-1.5-pro')  # or other models
+```
+
+### Modify Docker Configuration
+
+Edit `docker-compose.yml` to:
+- Change ports
+- Add environment variables
+- Mount different volumes
+- Configure resource limits
 
 ## Next Steps
 
-1. **Add More Data** - Scrape additional bank pages
-2. **Build Web UI** - Create Flask/FastAPI web interface
-3. **Add Conversation History** - Enable multi-turn conversations
-4. **Fine-tune Prompts** - Improve answer quality
-5. **Deploy** - Host on cloud (Render, Railway, etc.)
+1. **Web UI** - Create Flask/FastAPI web interface
+2. **API Endpoint** - REST API for programmatic access
+3. **Conversation History** - Multi-turn conversations
+4. **More Data** - Scrape additional bank pages
+5. **Deploy** - Host on cloud (Render, Railway, AWS, etc.)
 
 ## License
 
 MIT
+
+---
+
+**Note:** This system uses:
+- **Free local embeddings** (no API quota)
+- **Gemini API** for answer generation only
+- **Docker** for dependency isolation
+
+All dependencies are automatically installed in the Docker container!
