@@ -1,307 +1,275 @@
-# Bank of Baku RAG Application 🏦
+# Bank of Baku RAG Assistant 🏦
 
-Complete RAG (Retrieval-Augmented Generation) system for Bank of Baku card information in Azerbaijani.
+Beautiful web application for querying Bank of Baku card information using RAG (Retrieval-Augmented Generation).
 
 ## Features
 
-✅ **Web Scraping** - Clean data extraction from Bank of Baku website
-✅ **Vector Database** - ChromaDB for semantic search
-✅ **Embeddings** - Local embeddings (no API quota limits)
-✅ **LLM Integration** - Gemini for answer generation
+✅ **Modern Web UI** - Clean, responsive chat interface
+✅ **Smart Query Detection** - Lists all cards or provides specific details
+✅ **Vector Search** - ChromaDB with local embeddings (no API quota)
+✅ **AI-Powered Answers** - Gemini 2.5 Flash for accurate responses
 ✅ **Azerbaijani Support** - Full support for Azerbaijani language
-✅ **Interactive Chatbot** - Easy-to-use command-line interface
-✅ **Docker Support** - Isolated environment, zero dependency issues
-
-## Quick Start with Docker 🐳 (Recommended)
-
-### Prerequisites
-- Docker and Docker Compose installed
-- Gemini API key in `.env` file
-
-### 1. Build and Run
-
-```bash
-# Build the Docker image
-docker-compose build
-
-# Run the chatbot
-docker-compose up
-
-# Or run in interactive mode
-docker-compose run --rm rag-app
-```
-
-### 2. Test the System
-
-```bash
-# Run test queries
-docker-compose --profile test up rag-test
-```
-
-### 3. Scrape New Data
-
-```bash
-# Run the scraper
-docker-compose --profile scrape up scraper
-```
-
-## Local Installation (Alternative)
-
-### 1. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Set Up API Key
-
-Ensure your `.env` file has:
-```
-LLM_PROVIDER=gemini
-LLM_API_KEY=your_gemini_api_key_here
-```
-
-### 3. Run Chatbot
-
-```bash
-python chatbot.py
-```
+✅ **Docker Ready** - Easy deployment with Docker
 
 ## Project Structure
 
 ```
-.
-├── Dockerfile                  # Docker configuration
-├── docker-compose.yml          # Docker Compose setup
-├── scraper.py                  # Web scraper
-├── rag_system_simple.py        # Core RAG implementation
-├── chatbot.py                  # Interactive chatbot
-├── requirements.txt            # Python dependencies
-├── .env                        # API keys
-└── data/
-    ├── credit cards urls.txt   # Credit card URLs
-    ├── debet cards urls.txt    # Debet card URLs
-    ├── rag_chunks.jsonl        # Processed RAG data
-    ├── raw_data.json           # Complete extracted data
-    └── stats.json              # Extraction statistics
+banking_assistant/
+├── frontend/              # Web application
+│   ├── app.py            # Flask server
+│   ├── templates/        # HTML templates
+│   └── static/           # CSS, JavaScript
+├── backend/              # RAG system
+│   ├── rag_system.py    # Core RAG logic
+│   └── __init__.py
+├── scraper/              # Data collection
+│   ├── scraper.py       # Web scraper
+│   ├── urls/            # URL lists
+│   └── output/          # Scraped data
+├── docker/               # Docker configuration
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── requirements.txt      # Python dependencies
+└── .env                 # API keys
 ```
 
-## Usage
+## Quick Start
 
-### Interactive Chatbot
+### Option 1: Run Locally
 
 ```bash
-# With Docker
-docker-compose run --rm rag-app
+# 1. Install dependencies
+pip install -r requirements.txt
 
-# Without Docker
-python chatbot.py
+# 2. Set up environment
+# Make sure .env contains:
+# LLM_API_KEY=your_gemini_api_key_here
+
+# 3. Run the web app
+cd frontend
+python app.py
+
+# 4. Open browser
+# http://localhost:5000
 ```
 
-**Commands:**
-- Type your question in Azerbaijani
-- `yardım` or `help` - Show example questions
-- `çıxış` or `exit` - Exit the chatbot
+### Option 2: Run with Docker (Production)
 
-### Programmatic Use
+```bash
+# 1. Build and run
+docker-compose up --build
 
-```python
-from rag_system_simple import BankCardRAG
+# 2. Run in background
+docker-compose up -d
 
-# Initialize
-rag = BankCardRAG(data_file="data/rag_chunks.jsonl")
-
-# Index data (first time only)
-rag.load_and_index_data()
-
-# Query
-result = rag.query("Maaş kartı ilə nə qədər kredit götürə bilərəm?")
-print(result['answer'])
-print(result['sources'])
+# 3. Open browser
+# http://localhost:5001
 ```
 
-## Example Questions
+## Data Collection
 
-1. Bolkart kredit kartının şərtləri nələrdir?
-2. Maaş kartı ilə nə qədər kredit götürə bilərəm?
-3. Keşbek olan kartlar hansılardır?
-4. Qızıl kredit kartı nədir?
-5. Debet kartların qiymətləri nə qədərdir?
-6. Dostlar klubu kartları kimə verilir?
-7. Kartlarda təmassız ödəniş var?
-8. Kredit kartının müddəti neçə aydır?
+To scrape fresh data from Bank of Baku:
 
-## How It Works
-
-### Architecture
-
-```
-User Question (Azerbaijani)
-       ↓
-Local Embedding (ChromaDB default)
-       ↓
-Vector Search → Top K Relevant Chunks
-       ↓
-Gemini LLM (with context)
-       ↓
-Answer in Azerbaijani + Sources
+```bash
+cd scraper
+python scraper.py
 ```
 
-### Components
+URLs are in:
+- `scraper/urls/credit cards urls.txt` - 7 credit cards
+- `scraper/urls/debet cards urls.txt` - 6 debit cards
 
-1. **Data Extraction** (`scraper.py`)
-   - Scrapes 13 Bank of Baku card pages
-   - Removes navigation and duplicates
-   - Outputs clean JSONL format
+Output goes to `scraper/output/`:
+- `rag_chunks.jsonl` - RAG-ready data
+- `raw_data.json` - Full scraped data
+- `stats.json` - Statistics
 
-2. **Embedding & Indexing** (`rag_system_simple.py`)
-   - Loads data from `rag_chunks.jsonl`
-   - Generates embeddings locally (no API calls)
-   - Stores in ChromaDB
+## Usage Examples
 
-3. **Retrieval**
-   - Semantic search for relevant passages
-   - Returns top-k most similar chunks
+### Web Interface
 
-4. **Generation**
-   - Sends query + context to Gemini
-   - Generates answer in Azerbaijani
-   - Returns with source attribution
+1. **List all cards**: "Hansı kredit kartları var?"
+2. **Specific info**: "Bolkart kredit kartının şərtləri nələrdir?"
+3. **Compare cards**: "Keşbek olan kartlar hansılardır?"
 
-5. **Interface** (`chatbot.py`)
-   - Interactive CLI
-   - Continuous conversation
-   - Help system
+### Quick Questions
+
+Click on pre-defined buttons:
+- "Kredit kartları" → Lists all credit cards
+- "Debet kartları" → Lists all debit cards
+- "Keşbek kartlar" → Cards with cashback
+
+## API Endpoints
+
+### POST /api/query
+Query the RAG system
+
+**Request:**
+```json
+{
+  "question": "Hansı kredit kartları var?"
+}
+```
+
+**Response:**
+```json
+{
+  "answer": "<html formatted answer>",
+  "sources": [
+    {
+      "card_name": "Bolkart kredit",
+      "card_type": "credit",
+      "url": "https://..."
+    }
+  ],
+  "card_count": 7
+}
+```
+
+### GET /api/cards
+Get all available cards
+
+**Query params:**
+- `type` (optional): "credit" or "debet"
+
+**Response:**
+```json
+{
+  "cards": [...],
+  "count": 13
+}
+```
+
+### GET /api/health
+Health check
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "indexed_chunks": 13
+}
+```
 
 ## Technical Stack
 
 | Component | Technology |
 |-----------|-----------|
-| **Containerization** | Docker + Docker Compose |
-| **Scraper** | BeautifulSoup, Requests |
-| **Embeddings** | ChromaDB Default (local, free) |
+| **Frontend** | Flask, HTML5, CSS3, JavaScript |
+| **Backend** | Python 3.10+ |
 | **Vector DB** | ChromaDB |
-| **LLM** | Google Gemini 1.5 Flash |
-| **Language** | Python 3.11 |
+| **Embeddings** | ChromaDB default (local) |
+| **LLM** | Google Gemini 2.5 Flash |
+| **Scraping** | BeautifulSoup4 |
+| **Deployment** | Docker |
 
 ## Data Quality
 
-- **Pages**: 13 (7 credit + 6 debet cards)
+- **Total Pages**: 13 (7 credit + 6 debit cards)
+- **Total Words**: 2,607 clean words
+- **Avg Words/Chunk**: 200 words
 - **Success Rate**: 100%
-- **Total Words**: 2,607 (clean content)
-- **Avg Words/Chunk**: 200.54
-- **Language**: Azerbaijani (az)
 
-## Docker Commands
+## Features in Detail
 
-```bash
-# Build
-docker-compose build
+### Smart Query Detection
 
-# Run chatbot
-docker-compose up
+The system automatically detects two types of questions:
 
-# Run chatbot interactively
-docker-compose run --rm rag-app
-
-# Test the system
-docker-compose --profile test up rag-test
-
-# Scrape new data
-docker-compose --profile scrape up scraper
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-
-# Remove all containers and volumes
-docker-compose down -v
+**1. List Questions** - Returns ALL cards
+```
+"Hansı kredit kartları var?"
+"Hansı kartlar mövcuddur?"
+→ Returns all 7 credit cards or all 13 cards
 ```
 
-## Troubleshooting
-
-### Docker Issues
-
-**Port already in use:**
-```bash
-docker-compose down
+**2. Specific Questions** - Returns detailed info
+```
+"Bolkart Gold kredit haqqında məlumat"
+"Maaş kartı şərtləri nələrdir?"
+→ Returns top 3 most relevant chunks with detailed answer
 ```
 
-**Permission denied:**
+### Responsive Design
+
+- ✅ Desktop-optimized chat interface
+- ✅ Mobile-friendly responsive layout
+- ✅ Modern gradient design
+- ✅ Smooth animations
+- ✅ Real-time loading indicators
+
+## Development
+
+### Run in Development Mode
+
 ```bash
-sudo docker-compose up
-```
+# Frontend with auto-reload
+cd frontend
+export FLASK_ENV=development
+python app.py
 
-**Rebuild after code changes:**
-```bash
-docker-compose build --no-cache
-docker-compose up
-```
-
-### API Issues
-
-**"LLM_API_KEY not found":**
-- Ensure `.env` file exists in project root
-- Check that `LLM_API_KEY=your_key` is set
-
-**Model not found:**
-- The system uses `gemini-1.5-flash`
-- Check your API key has access to Gemini models
-
-### Data Issues
-
-**No data found:**
-```bash
-# Run scraper first
-docker-compose --profile scrape up scraper
-
-# Or locally
+# Test scraper
+cd scraper
 python scraper.py
 ```
 
-## Customization
+### Add New URLs
 
-### Change Number of Retrieved Chunks
+1. Edit `scraper/urls/*.txt`
+2. Run scraper: `python scraper/scraper.py`
+3. Restart frontend to reload data
 
-In `rag_system_simple.py`:
-```python
-result = rag.query(question, n_results=5)  # Default is 3
+## Troubleshooting
+
+### Flask app won't start
+
+**Issue**: `ImportError: No module named 'backend'`
+**Fix**: Run from project root or add to PYTHONPATH
+
+```bash
+export PYTHONPATH="${PYTHONPATH}:/path/to/banking_assistant"
+cd frontend && python app.py
 ```
 
-### Use Different LLM Model
+### No data indexed
 
-In `rag_system_simple.py`:
-```python
-self.model = genai.GenerativeModel('gemini-1.5-pro')  # or other models
+**Issue**: "0 chunks indexed"
+**Fix**: Make sure `scraper/output/rag_chunks.jsonl` exists
+
+```bash
+cd scraper
+python scraper.py
 ```
 
-### Modify Docker Configuration
+### Gemini API errors
 
-Edit `docker-compose.yml` to:
-- Change ports
-- Add environment variables
-- Mount different volumes
-- Configure resource limits
+**Issue**: "API key not found" or "Invalid API key"
+**Fix**: Check `.env` file in project root
+
+```
+LLM_API_KEY=your_actual_gemini_api_key
+```
 
 ## Next Steps
 
-1. **Web UI** - Create Flask/FastAPI web interface
-2. **API Endpoint** - REST API for programmatic access
-3. **Conversation History** - Multi-turn conversations
-4. **More Data** - Scrape additional bank pages
-5. **Deploy** - Host on cloud (Render, Railway, AWS, etc.)
+🚀 **Planned Features:**
+- [ ] Conversation history
+- [ ] Multi-language support (English, Russian)
+- [ ] Export to PDF
+- [ ] Admin panel for managing cards
+- [ ] User authentication
+- [ ] Analytics dashboard
 
 ## License
 
 MIT
 
+## Credits
+
+Built with ❤️ using Claude Code
+
 ---
 
-**Note:** This system uses:
-- **Free local embeddings** (no API quota)
-- **Gemini API** for answer generation only
-- **Docker** for dependency isolation
-
-All dependencies are automatically installed in the Docker container!
+**Live Demo**: http://localhost:5000
+**API Docs**: http://localhost:5000/api/health
+**Version**: 2.0

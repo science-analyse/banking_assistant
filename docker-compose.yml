@@ -1,37 +1,23 @@
 version: '3.8'
 
 services:
-  rag-app:
+  web:
     build: .
-    container_name: banking_rag
+    container_name: bank_rag_assistant
+    ports:
+      - "5001:5001"
     volumes:
-      - ./data:/app/data
+      # Mount data directory for persistence
+      - ./scraper/output:/app/scraper/output
+      # Mount .env for API keys
       - ./.env:/app/.env
     environment:
       - PYTHONUNBUFFERED=1
-    stdin_open: true
-    tty: true
-    command: python chatbot.py
-
-  # Test service to run the RAG system test
-  rag-test:
-    build: .
-    container_name: banking_rag_test
-    volumes:
-      - ./data:/app/data
-      - ./.env:/app/.env
-    environment:
-      - PYTHONUNBUFFERED=1
-    command: python rag_system_simple.py
-    profiles:
-      - test
-
-  # Scraper service
-  scraper:
-    build: .
-    container_name: banking_scraper
-    volumes:
-      - ./data:/app/data
-    command: python scraper.py
-    profiles:
-      - scrape
+      - PYTHONPATH=/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

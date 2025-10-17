@@ -1,5 +1,8 @@
+# Git
 .git
 .gitignore
+
+# Python cache
 __pycache__
 *.pyc
 *.pyo
@@ -10,7 +13,20 @@ __pycache__
 *.egg-info
 dist
 build
+
+# Environment
 .env.example
-README.md
+
+# System
 .DS_Store
+.claude
+
+# ChromaDB (will be recreated)
 chroma_db
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Old docker directory
+docker/
