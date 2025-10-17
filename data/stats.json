@@ -1,0 +1,18 @@
+{
+  "total_pages": 13,
+  "successful_scrapes": 13,
+  "failed_scrapes": 0,
+  "total_chunks": 13,
+  "avg_chunks_per_page": 1.0,
+  "card_types": {
+    "credit": 7,
+    "debet": 6
+  },
+  "total_words": 2607,
+  "avg_words_per_chunk": 200.54,
+  "quality_metrics": {
+    "pages_with_titles": 13,
+    "pages_with_content": 12,
+    "avg_paragraphs_per_page": 11.69
+  }
+}
