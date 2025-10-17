@@ -9,6 +9,8 @@ services:
     volumes:
       # Mount data directory for persistence
       - ./scraper/output:/app/scraper/output
+      # Mount ChromaDB for persistent vector storage
+      - ./chroma_db:/app/chroma_db
       # Mount .env for API keys
       - ./.env:/app/.env
     environment:

@@ -30,7 +30,8 @@ class BankCardRAG:
 
         # Initialize ChromaDB with default embedding function (no API needed)
         print("⏳ Initializing ChromaDB with default embeddings...")
-        self.chroma_client = chromadb.Client()
+        # Use persistent storage so data survives restarts
+        self.chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
         # Create or get collection with default embedding function
         self.collection = self.chroma_client.get_or_create_collection(
